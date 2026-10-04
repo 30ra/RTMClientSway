@@ -22,7 +22,7 @@ RTM Client Swayは、Minecraftの鉄道MOD「RealTrainMod（RTM）」の列車�
 
 ## 導入方法
 
-1. リリースから最新版をダウンロードします。
+1. [リリース](https://github.com/hachiko-tokkai/RTMClientSway/releases)から最新版をダウンロードします。
 2. Minecraftを終了します。
 3. KaizPatchXを使用している起動構成の`mods`フォルダーへJARを入れます。
 4. Minecraftを起動します。
