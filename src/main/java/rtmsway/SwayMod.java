@@ -22,7 +22,7 @@ public final class SwayMod {
     public static void reload() {
         isOn = config.getBoolean("enabled", "sway", true, "車体の揺れを有効にする");
         isVertical = config.getBoolean("vertical", "sway", true, "走行・停車時の上下動。分岐には上下衝撃を加えません");
-        gain = value("strength", 1, 0, 5, "全体の強さ。1が八高8000スクリプト相当");
+        gain = value("strength", 1, 0, 5, "すべての揺れに掛ける倍率。1が標準、0で揺れなし");
         run = value("running", 1, 0, 5, "走行中の揺れの強さ");
         curve = value("curve", 1, 0, 5, "カーブの追加傾斜の強さ");
         branch = value("switch", 1, 0, 5, "分岐の傾斜・横衝撃の強さ");

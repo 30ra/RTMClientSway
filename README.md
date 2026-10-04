@@ -1,74 +1,115 @@
 # RTM Client Sway
 
-Minecraft 1.7.10 / Forge / KaizPatchX向けのクライアント専用車体揺れMODです。
-`dist/RTMClientSway-1.0.0.jar`をクライアントの`mods`へ入れます。サーバーへの導入は不要です。
+RTM Client Swayは、Minecraftの鉄道MOD「RealTrainMod（RTM）」の列車に、車体の揺れを追加するクライアント専用MODです。KaizPatchX環境向けに開発しています。
 
-## 対応環境と確認状況
+走行中の上下・左右の揺れ、カーブや分岐での傾き、停車時の揺り返しを画面上で表現します。揺れのON/OFFと強さは設定画面から変更できます。
 
-- Minecraft 1.7.10 / Forge 10.13.4.1614
-- KaizPatchX 1.10.1の描画クラスへの組み込みを静的検証済み
-- Java 8でビルド済み
+通常の車両パックでは、車両ごとにスクリプトを追加する必要はありません。列車の速度や制動性能などの走行動作は変更せず、見た目に揺れを加えます。
 
-Minecraft上の描画・設定画面・シェーダーとの組み合わせは未検証です。
-RTMの標準的な列車描画経路を使う車両が対象です。全追加パックでの動作は保証していません。
+## 対応環境
 
-## 設定
-
-Minecraftの「Mods → RTM Client Sway → Config」で設定できます。
-ゲームを終了せず、保存後の描画から反映します。設定変更時は揺れの履歴を初期化します。
-ファイルは`config/rtmclientsway.cfg`です。
-
-| 設定 | 内容 |
+| 項目 | 対象 |
 |---|---|
-| enabled | 全体のON/OFF |
-| strength | 全体倍率、0～5、初期値1 |
-| running | 走行時倍率、0～5 |
-| curve | 曲線時倍率、0～5 |
-| switch | 分岐時倍率、0～5 |
-| stop | 停車時倍率、0～5 |
-| vertical | 走行・停車時の上下動ON/OFF |
-| pivotHeight | 回転中心高さ、初期値1.5m |
+| Minecraft | 1.7.10 |
+| Minecraft Forge | 10.13.4.1614 |
+| RTM環境 | KaizPatchX 1.10.1 |
+| 導入先 | プレイヤーのクライアント |
 
-台車間距離は各車両のTrainConfig.getBogiePos()から取得します。
-前後どちらの走行でも絶対速度から判定します。走行中は走行距離を入力とした波形、曲線は台車角度・速度・カント、分岐は実際の分岐レール、停車時は減速度・ジャークから計算します。
-分岐で上下の衝撃は追加しません。台車自体は追加揺動せず、車体・方向幕・発光部へ同じ変換を適用します。
-物理挙動、車両の位置、速度、サーバー側処理、カメラの位置は変更しません。
+サーバーへの導入は不要です。導入したプレイヤーの画面にのみ反映されます。
+別バージョンのMinecraft、KaizPatchX、および公式RTM環境は未検証です。
 
-## 既存スクリプトとの関係
+現時点では開発段階です。Java 8でのビルドとKaizPatchX 1.10.1の描画クラスへの組み込みを静的検証していますが、Minecraft上での描画・設定画面・シェーダーとの組み合わせは未検証です。
 
-MODをOFFにするか取り外すと、追加の揺れは無くなります。
-ほかのパックに独自の揺動処理がある場合は重複適用されます。その場合、そのパックの揺動呼び出しを無効化する必要があります。
+## 導入方法
 
-## 復元
+1. このリポジトリの[distフォルダー](dist/)から`RTMClientSway-1.0.0.jar`をダウンロードします。
+2. Minecraftを終了します。
+3. KaizPatchXを使用している起動構成の`mods`フォルダーへJARを入れます。
+4. Minecraftを起動します。
 
-MODを取り外すとMOD由来の揺れが無くなります。
+Minecraft、Forge、KaizPatchXは別途導入してください。本MODには同梱していません。
 
-## ビルド・検証
+## 揺れの種類
 
-Java 8のJDKとForge 1.7.10開発キャッシュが必要です。このリポジトリだけでは依存ライブラリを自動ダウンロードしません。
+| 場面 | 表現 |
+|---|---|
+| 走行中 | 速度と走行距離に応じた上下・左右の揺れと傾き |
+| カーブ | 速度と台車の向き、線路の傾きに応じた車体の傾き |
+| 分岐 | 分岐レール上での傾きと横方向の衝撃 |
+| 停車 | 停止直前の減速の強さと変化に応じた揺り返し |
+
+前進・後退の両方を対象にします。分岐では上下方向の衝撃を追加しません。
+車体に合わせて方向幕や発光部も動きます。台車自体の追加揺動や、乗車中のカメラを揺らす機能はありません。
+
+## 設定方法
+
+Minecraftのタイトル画面から「Mods → RTM Client Sway → Config」を開きます。
+設定を保存すると、Minecraftの再起動なしで反映します。
+
+| 設定名 | 内容 | 初期値 |
+|---|---|---|
+| enabled | 追加の揺れを有効にする | ON |
+| strength | すべての揺れに掛ける倍率 | 1 |
+| running | 走行中の揺れの倍率 | 1 |
+| curve | カーブでの傾きの倍率 | 1 |
+| switch | 分岐での傾き・横衝撃の倍率 | 1 |
+| stop | 停車時の揺り返しの倍率 | 1 |
+| vertical | 走行・停車時の上下動を有効にする | ON |
+| pivotHeight | 車体が傾くときの回転中心の高さ | 1.5 m |
+
+倍率は0～5で指定します。1が標準、0がその効果なしです。`strength`は各場面の倍率にさらに掛かります。
+全体の揺れを弱くしたい場合は`strength`を下げ、分岐だけ強くしたい場合は`switch`を上げます。
+`pivotHeight`は0～4 mで指定できます。通常は初期値のまま使用してください。
+
+設定ファイルは起動構成の`config/rtmclientsway.cfg`です。ファイルを直接編集する場合はMinecraftを終了してから編集してください。
+
+## 車両パックとの互換性
+
+RTMの標準的な列車描画経路を使う車両が対象です。車両設定から台車の間隔を取得するため、台車間距離が異なる車両にも対応する実装です。全追加パックでの動作確認は行っていません。
+
+すでに独自の車体揺れを実装しているパックでは、揺れが重複します。その場合は本MODをOFFにするか、車両パック側の揺動処理を無効にしてください。
+独自の描画方式を使うパックや、ほかの描画変更MODとの組み合わせでは適用されない場合や不具合が発生する場合があります。
+
+本MODは車両の位置、速度、加減速性能、当たり判定を変更しません。揺れの状態をサーバーへ送信する処理もありません。
+
+## 無効化・削除方法
+
+設定の`enabled`をOFFにすると、本MODによる追加の揺れを無効にできます。
+削除する場合はMinecraftを終了し、`mods`から`RTMClientSway-1.0.0.jar`を取り除いてください。
+
+## 開発者向け：ビルドと検証
+
+ビルドにはJava 8のJDK、PowerShell、およびForge 1.7.10開発環境のGradleキャッシュが必要です。ビルドスクリプトは依存ライブラリを自動ダウンロードしません。
+キャッシュにはForgeの開発用JAR、ASM 5.0.3、LaunchWrapper 1.12、LWJGL 2.9.1、Guava 17.0が必要です。
+
+リポジトリのルートで実行します。
 
 ```powershell
 powershell -File build.ps1
-# 別のキャッシュを指定する場合
+```
+
+キャッシュの場所を指定する場合：
+
+```powershell
 powershell -File build.ps1 -Cache "D:\gradle-cache"
-# 対象KaizPatchXのバイトコード検証
-powershell -File verify.ps1 -KaizJar "D:\Minecraft\mods\KaizPatchX.jar"
 ```
 
 生成先は`dist/RTMClientSway-1.0.0.jar`です。
-Minecraftへ直接リンクするメソッド呼び出しを避け、MCP/SRG両フィールド名に対応することで手動ビルドの再難読化を不要にしています。
-ASMは実行環境のものを使用し、同梱しません。
-実際に導入されているKaizPatchX 1.10.1の描画クラスを対象に、ASM BasicVerifierによるバイトコード検証を行っています。
-Minecraftを起動した描画・設定画面・シェーダーとの組み合わせは未検証です。
+対象のKaizPatchX JARへ描画処理を組み込んだバイトコードを検証する場合：
 
-## 実装の根拠
+```powershell
+powershell -File verify.ps1 -KaizJar "D:\Minecraft\mods\KaizPatchX.jar"
+```
 
-参照ソース: [KaizPatchX / RenderVehicleBase.java](https://github.com/Kai-Z-JP/KaizPatchX/blob/master/src/main/java/jp/ngt/rtm/entity/vehicle/RenderVehicleBase.java)
-`renderVehicleBase`が車両の位置・Yaw/Pitch/Roll・モデルoffsetを適用した後、`renderVehicleMain`で車体・ライト・方向幕を描画します。
-`renderVehicleMain`をGL行列のpush/pop付きで囲み、例外発生時も追加分をpopします。
-更新はEntityのticksExistedが変わったときだけで、描画パスや材質の数による多重更新はありません。
-台車のレール照会は更新時に2回だけです。反射APIは一度解決したメンバーをキャッシュし、揺動状態はWeakHashMapに保存します。
-API不一致時はログを1回記録して揺動を停止します。
+この検証はMinecraft上での動作試験を代替するものではありません。
+
+## 開発者向け：描画処理
+
+[KaizPatchXのRenderVehicleBase](https://github.com/Kai-Z-JP/KaizPatchX/blob/master/src/main/java/jp/ngt/rtm/entity/vehicle/RenderVehicleBase.java)の`renderVehicleMain`へ、車体を移動・回転する描画処理を追加します。
+車体・ライト・方向幕に同じ変換を適用し、処理後は描画用の行列を元へ戻します。
+
+揺れの計算は車両ごとにTickが変わったときだけ実行し、描画フレームの間を補間します。分岐判定のレール照会は更新ごとに前後の台車で各1回です。
+車両ごとの状態はクライアント内に保存します。APIの不一致を検出した場合はエラーをログに記録し、追加の揺れを停止します。
 
 ## 生成AIの利用について
 
@@ -77,7 +118,7 @@ API不一致時はログを1回記録して揺動を停止します。
 
 ## ライセンス
 
-本プロジェクトのソースコードとドキュメントは[MIT License](LICENSE)で公開しています。
+本プロジェクトのソースコードとドキュメントには[MIT License](LICENSE)を適用しています。
 
 Copyright (c) 2026 hachiko-tokkai
 
