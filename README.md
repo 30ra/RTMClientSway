@@ -34,7 +34,7 @@ RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カ�
 ## 導入方法
 
 1. Minecraftを終了します。
-2. [リリースページ](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest)の「Assets」から`RTMClientSway-1.0.0.jar`をダウンロードします。
+2. [リリースページ](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest)の「Assets」から最新版のJARをダウンロードします。
 3. KaizPatchXを使用している起動構成の`mods`フォルダーへ入れます。
 4. Minecraftを起動します。
 
