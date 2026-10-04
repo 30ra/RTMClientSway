@@ -2,7 +2,7 @@
 
 Minecraft 1.7.10 / KaizPatchX向けの、列車の車体に揺れを追加するクライアント専用MODです。
 
-[ダウンロード](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest) · [変更履歴](https://github.com/hachiko-tokkai/RTMClientSway/releases) · [不具合報告](https://github.com/hachiko-tokkai/RTMClientSway/issues)
+[ダウンロード](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest)· [不具合報告](https://github.com/hachiko-tokkai/RTMClientSway/issues)
 
 ## 概要
 
