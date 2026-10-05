@@ -22,7 +22,7 @@ RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カ�
 
 本MODはKaizPatchX 1.10.1以上の環境を前提としています。別バージョンのMinecraft、KaizPatchX 1.10.1未満、および公式RTM環境は未検証です。
 
-v1.0.1からAngelica 2.2.29以上に対応しています。Angelicaは任意で、導入しなくても使用できます。Angelica併用時の実機動作は製作者が確認済みです。将来のAngelicaの仕様変更による互換性までは保証しません。
+v1.0.1からAngelica 2.2.29以上に対応しています。
 
 ## 注意事項
 
