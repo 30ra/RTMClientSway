@@ -2,15 +2,15 @@
 
 Minecraft 1.7.10 / KaizPatchX向けの、列車の車体に揺れを追加するクライアント専用MODです。
 
-[ダウンロード](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest) · [変更履歴](https://github.com/hachiko-tokkai/RTMClientSway/releases) · [不具合報告](https://github.com/hachiko-tokkai/RTMClientSway/issues)
+[ダウンロード](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest) · [不具合報告](https://github.com/hachiko-tokkai/RTMClientSway/issues)
 
-## これはなに
+## 概要
 
 RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カーブや分岐での傾き、停車時の揺り返しを追加します。
 
 揺れは導入したプレイヤーの画面にのみ反映されます。車両の速度・加減速性能・当たり判定は変更しません。サーバーへの導入は不要です。
 
-通常の車両パックはスクリプトを追加せずに使用できます。揺れのON/OFFと強さは設定から調整できます。
+揺れのON/OFFと強さは設定から調整できます。
 
 ## 対応環境
 
@@ -20,23 +20,18 @@ RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カ�
 | Minecraft Forge | 10.13.4.1614 |
 | KaizPatchX | 1.10.1以上 |
 
-本MODはKaizPatchXへの追加MODです。KaizPatchXはそのまま残して導入してください。
-別バージョンのMinecraft、KaizPatchX 1.10.1未満、および公式RTM環境は未検証です。
+本MODはKaizPatchX 1.10.1以上の環境を前提としています。別バージョンのMinecraft、KaizPatchX 1.10.1未満、および公式RTM環境は未検証です。
 
 ## 注意事項
 
-現在は開発段階です。ビルドと静的検証は実施していますが、Minecraft上での描画・設定画面・シェーダーとの組み合わせは未検証です。
-
-- 独自の車体揺れを持つ車両パックでは、揺れが重複します。本MODまたはパック側の揺動処理を無効にしてください。
 - RTMの標準的な列車描画経路を使う車両が対象です。全追加パックでの動作を保証するものではありません。
 - ほかの描画変更MODとの組み合わせでは、不具合が発生する場合があります。
 
 ## 導入方法
 
-1. Minecraftを終了します。
-2. [リリースページ](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest)の「Assets」から最新版のJARをダウンロードします。
-3. KaizPatchXを使用している起動構成の`mods`フォルダーへ入れます。
-4. Minecraftを起動します。
+1. [リリースページ](https://github.com/hachiko-tokkai/RTMClientSway/releases/latest)から最新版のJARをダウンロードします。
+2. KaizPatchXを使用している起動構成の`mods`フォルダーへ入れます。
+3. Minecraftを起動します。
 
 同じMODの古いJARがある場合は、取り除いてから新しいJARを入れてください。
 
@@ -50,12 +45,10 @@ RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カ�
 | 停車 | 停止直前の減速の強さと変化に応じた揺り返し |
 
 前進・後退の両方が対象です。車体と一緒に方向幕や発光部も動きます。
-分岐で上下の衝撃は追加しません。台車自体の追加揺動と、乗車中のカメラを揺らす機能はありません。
 
 ## 設定
 
 タイトル画面の「Mods → RTM Client Sway → Config」から変更できます。
-設定画面で保存した変更は、再起動せずに反映する実装です。
 
 | 項目 | 内容 | 初期値 |
 |---|---|---|
@@ -78,7 +71,7 @@ RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カ�
 ## 無効化・削除
 
 `enabled`をOFFにすると、本MODによる追加の揺れが無効になります。
-削除する場合はMinecraftを終了し、`mods`から本MODのJARを取り除いてください。
+削除する場合は`mods`から本MODのJARを取り除いてください。
 
 ## 不具合報告
 
@@ -92,7 +85,6 @@ RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カ�
 ## 生成AIの利用
 
 設計、コード生成・修正、検証用コード、文書作成にOpenAI Codexを使用しています。
-Java 8でのビルドと、KaizPatchX 1.10.1の描画クラスへの組み込みの静的検証を実施済みです。Minecraft上での動作試験は未実施です。
 
 ## ライセンス・免責事項
 
