@@ -18,10 +18,10 @@ RTM（RealTrainMod）の列車に、走行中の上下・左右の揺れ、カ�
 |---|---|
 | Minecraft | 1.7.10 |
 | Minecraft Forge | 10.13.4.1614 |
-| KaizPatchX | 1.10.1 |
+| KaizPatchX | 1.10.1以上 |
 
 本MODはKaizPatchXへの追加MODです。KaizPatchXはそのまま残して導入してください。
-別バージョンのMinecraft・KaizPatchX、および公式RTM環境は未検証です。
+別バージョンのMinecraft、KaizPatchX 1.10.1未満、および公式RTM環境は未検証です。
 
 ## 注意事項
 
