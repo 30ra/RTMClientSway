@@ -54,6 +54,21 @@ v1.0.1からAngelica 2.2.29以上に対応しています。
 
 タイトル画面の「Mods → RTM Client Sway → Config」から変更できます。
 
+開発版1.1.0-devのConfig画面は「基本設定」「curve / 曲線」「straight / 走行」「turnout / 分岐」「stop / 制動・停止」に分かれています。詳細設定にはPreviewerと同じ項目名・単位を使用し、日本語の説明を表示します。`notchFactors`はN・B1～B7・非常の順の9個です。数値には安全な範囲を設定しており、範囲外のプレビュー設定は読み込みません。
+
+### Previewerの出力を読み込む（開発版）
+
+1. [RTMBodyMotion Previewer](https://github.com/C-TREC/RTMBodyMotionPreviewer/releases/tag/v1.0.0)から`MOTION_TUNING.js`を書き出します。全項目・変更項目のみの両方に対応します。
+2. 使用するMinecraft起動構成の`config/rtmclientsway/`フォルダーを作り、そこへファイルを置きます。
+3. Config画面の基本設定で`importPreview`をONにして保存します。タイトル画面でも実行できます。
+4. 詳細設定を開き直すと、読み込んだ値を確認・変更できます。成功時は`importPreview`が自動でOFFに戻ります。
+
+これは一度だけ取り込む操作です。読み込み後にConfig画面で変更した値は維持され、ファイルが自動で上書きし続けることはありません。再度読み込む場合は`importPreview`をONにします。省略項目は参考元の既定値で補われるため、詳細設定全体を置き換えます。基本設定のON/OFF・倍率・回転中心は維持します。
+
+取り込み前の`rtmclientsway.cfg`は同じフォルダーへ`.before-import-時刻.bak`としてバックアップします。提供ファイル自体は変更しません。失敗時は詳細設定を維持し、理由をログに記録します。`load`・`debug`・未知の項目は未適用としてログに記録します。ファイルはUTF-8の設定データとして解析し、JavaScriptのコードは実行しません。
+
+プレビューとの比較時は各倍率を1にします。回転中心は参考元の1.15 mに合わせることもできます。線路・速度・車両モデルなどの入力が違うため、プレビューとゲーム内の完全一致は保証しません。
+
 | 項目 | 内容 | 初期値 |
 |---|---|---|
 | `enabled` | 揺れのON/OFF | ON |

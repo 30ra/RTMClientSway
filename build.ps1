@@ -15,6 +15,7 @@ $sources = @(Get-ChildItem -LiteralPath (Join-Path $project 'src\main\java') -Re
 & javac -encoding UTF-8 -source 8 -target 8 -classpath (($deps | ForEach-Object FullName) -join ';') -d $classes $sources
 if ($LASTEXITCODE -ne 0) { throw 'javac failed' }
 Copy-Item -Path (Join-Path $project 'src\main\resources\mcmod.info') -Destination $classes
+Copy-Item -LiteralPath (Join-Path $project 'src\main\resources\assets') -Destination $classes -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $project 'LICENSE') -Destination $classes
 Copy-Item -LiteralPath (Join-Path $project 'THIRD_PARTY_NOTICES.md') -Destination $classes
 $output = Join-Path $dist 'RTMClientSway-1.1.0-dev.jar'

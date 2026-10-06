@@ -1,0 +1,5 @@
+rtmclientsway.config.general=基本設定・プレビューファイル読み込み
+rtmclientsway.config.curve=curve / 曲線・車体サスペンション
+rtmclientsway.config.straight=straight / 走行動揺
+rtmclientsway.config.turnout=turnout / 分岐器衝撃
+rtmclientsway.config.stop=stop / 制動・停止衝動

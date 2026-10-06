@@ -6,6 +6,9 @@ import net.minecraftforge.common.config.ConfigElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import cpw.mods.fml.client.config.IConfigElement;
 
 public final class SwayGuiFactory implements IModGuiFactory {
     public void initialize(Minecraft minecraft) {}
@@ -14,7 +17,13 @@ public final class SwayGuiFactory implements IModGuiFactory {
     public RuntimeOptionGuiHandler getHandlerFor(RuntimeOptionCategoryElement element) { return null; }
     public static final class Settings extends GuiConfig {
         public Settings(GuiScreen parent) {
-            super(parent, new ConfigElement(SwayMod.config.getCategory("sway")).getChildElements(), "rtmclientsway", false, false, "RTM Client Sway / 車体揺れ設定");
+            super(parent, elements(), "rtmclientsway", false, false, "RTM Client Sway / 車体揺れ設定");
+        }
+        private static List<IConfigElement> elements() {
+            List<IConfigElement> elements = new ArrayList<IConfigElement>();
+            for (String name : new String[]{"sway", "curve", "straight", "turnout", "stop"})
+                elements.add(new ConfigElement(SwayMod.config.getCategory(name)));
+            return elements;
         }
     }
 }

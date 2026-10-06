@@ -34,7 +34,7 @@ public final class SwayHook {
                 if (s == null || dt <= 0 || dt > .25 || move > speed * dt * 3 + 3 || Math.abs(dyaw) > 45) {
                     s = new State();
                     s.id = number(call(entity, "func_145782_y")).intValue();
-                    s.motion = new BodyMotion(s.id * 7919L + 1, speed);
+                    s.motion = new BodyMotion(s.id * 7919L + 1, speed, SwayMod.tuning);
                     s.dir = num(call(entity, "getSpeed")) < 0 ? -1 : 1;
                     for (int i = 0; i < 2; i++) if (bogies[i] != null) {
                         s.bx[i] = pos(bogies[i], 0); s.bz[i] = pos(bogies[i], 2);
@@ -51,6 +51,12 @@ public final class SwayHook {
                     int brake = Math.max(0, Math.min(8, -number(call(entity, "getNotch")).intValue()));
                     // 衝撃を加えてから共通ばねを積分する。フレーム補間の始点には衝撃前速度を使う。
                     double rv = s.motion.roll.v, xv = s.motion.sway.v, bv = s.motion.branchBounce.v;
+                    if (!s.motion.cfg.dataMapKey.isEmpty()) {
+                        Object resource = call(entity, "getResourceState");
+                        Object data = resource == null ? null : call(resource, "getDataMap");
+                        double adjust = data == null ? 0 : num(call(data, "getDouble", s.motion.cfg.dataMapKey));
+                        s.motion.straightAdjust(adjust, dt);
+                    }
                     impacts(entity, s, bogies, speed, lat, (int)Math.round(dt * 20));
                     s.motion.update(dt, speed, s.speed, lat, cant, s.dir, brake, SwayMod.run, SwayMod.curve, SwayMod.stop);
                     s.motion.roll.prevV = rv; s.motion.sway.prevV = xv; s.motion.branchBounce.prevV = bv;
@@ -60,11 +66,11 @@ public final class SwayHook {
             double f = Math.max(0, Math.min(1, frame)), dt = s.motion.dt;
             BodyMotion m = s.motion;
             double y = SwayMod.isVertical ? BodyMotion.softLimit(m.bounce.rawPose(f, dt) + m.branchBounce.rawPose(f, dt), .012) : 0;
-            double shift = BodyMotion.softLimit(m.shift.rawPose(f, dt) + m.brakeShift.rawPose(f, dt), .040);
+            double shift = BodyMotion.softLimit(m.shift.rawPose(f, dt) + m.brakeShift.rawPose(f, dt), m.cfg.get("stop.maxShiftM"));
             GL11.glTranslated(m.sway.pose(f, dt) * SwayMod.gain, y * SwayMod.gain, shift * SwayMod.gain);
             GL11.glTranslated(0, SwayMod.pivot, 0);
             GL11.glRotated(m.roll.pose(f, dt) * SwayMod.gain, 0, 0, 1);
-            GL11.glRotated(BodyMotion.softLimit(m.pitch.rawPose(f, dt), .65) * SwayMod.gain, 1, 0, 0);
+            GL11.glRotated(BodyMotion.softLimit(m.pitch.rawPose(f, dt), m.cfg.get("stop.maxPitchDeg")) * SwayMod.gain, 1, 0, 0);
             GL11.glTranslated(0, -SwayMod.pivot, 0);
         } catch (Exception e) {
             isFailed = true;
