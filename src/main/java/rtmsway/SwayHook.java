@@ -17,21 +17,13 @@ public final class SwayHook {
 
     public static void begin(Object entity, float frame) {
         GL11.glPushMatrix();
-        if (isFailed || entity == null) return;
+        if (!SwayMod.isOn || isFailed || entity == null) return;
         try {
             if (trainClass == null) trainClass = Class.forName("jp.ngt.rtm.entity.train.EntityTrainBase");
             if (!trainClass.isInstance(entity)) return;
             int tick = number(field(entity, "ticksExisted", "field_70173_aa")).intValue();
             State s = states.get(entity);
             if (s == null || s.tick != tick) {
-                String model = (String)call(entity, "getModelName");
-                VehicleConfig.Profile cfg = VehicleConfig.resolve(model);
-                if (cfg == null) return; // Forge設定がまだ初期化されていない。
-                if (s != null && (!Objects.equals(s.model, model) || s.cfg != cfg)) s = null;
-                if (!cfg.isOn) {
-                    if (s == null) s = new State();
-                    s.model = model; s.cfg = cfg; s.tick = tick; states.put(entity, s); return;
-                }
                 double speed = Math.abs(num(call(entity, "getSpeed")) * 20);
                 double x = pos(entity, 0), z = pos(entity, 2), yaw = numField(entity, "rotationYaw", "field_70177_z");
                 Object[] bogies = {call(entity, "getBogie", 0), call(entity, "getBogie", 1)};
@@ -42,8 +34,7 @@ public final class SwayHook {
                 if (s == null || dt <= 0 || dt > .25 || move > speed * dt * 3 + 3 || Math.abs(dyaw) > 45) {
                     s = new State();
                     s.id = number(call(entity, "func_145782_y")).intValue();
-                    s.model = model; s.cfg = cfg;
-                    s.motion = new BodyMotion(s.id * 7919L + 1, speed, cfg.tuning);
+                    s.motion = new BodyMotion(s.id * 7919L + 1, speed, SwayMod.tuning);
                     s.dir = num(call(entity, "getSpeed")) < 0 ? -1 : 1;
                     for (int i = 0; i < 2; i++) if (bogies[i] != null) {
                         s.bx[i] = pos(bogies[i], 0); s.bz[i] = pos(bogies[i], 2);
@@ -67,24 +58,22 @@ public final class SwayHook {
                         s.motion.straightAdjust(adjust, dt);
                     }
                     impacts(entity, s, bogies, speed, lat, (int)Math.round(dt * 20));
-                    s.motion.update(dt, speed, s.speed, lat, cant, s.dir, brake, cfg.run, cfg.curve, cfg.stop);
+                    s.motion.update(dt, speed, s.speed, lat, cant, s.dir, brake, SwayMod.run, SwayMod.curve, SwayMod.stop);
                     s.motion.roll.prevV = rv; s.motion.sway.prevV = xv; s.motion.branchBounce.prevV = bv;
                 }
                 s.tick = tick; s.x = x; s.z = z; s.yaw = yaw; s.speed = speed;
             }
-            if (!s.cfg.isOn) return;
             double f = Math.max(0, Math.min(1, frame)), dt = s.motion.dt;
             if (!Double.isFinite(f)) return;
-            VehicleConfig.Profile cfg = s.cfg;
             BodyMotion m = s.motion;
             // 倍率も制限前に適用し、Previewerの最大値を描画段階で超えない。
-            double y = cfg.isVertical ? BodyMotion.softLimit((m.bounce.rawPose(f, dt) + m.branchBounce.rawPose(f, dt)) * cfg.gain, .012) : 0;
-            double shift = BodyMotion.softLimit((m.shift.rawPose(f, dt) + m.brakeShift.rawPose(f, dt)) * cfg.gain, m.cfg.get("stop.maxShiftM"));
-            GL11.glTranslated(BodyMotion.softLimit(m.sway.rawPose(f, dt) * cfg.gain, m.sway.max), y, shift);
-            GL11.glTranslated(0, cfg.pivot, 0);
-            GL11.glRotated(BodyMotion.softLimit(m.roll.rawPose(f, dt) * cfg.gain, m.roll.max), 0, 0, 1);
-            GL11.glRotated(BodyMotion.softLimit(m.pitch.rawPose(f, dt) * cfg.gain, m.cfg.get("stop.maxPitchDeg")), 1, 0, 0);
-            GL11.glTranslated(0, -cfg.pivot, 0);
+            double y = SwayMod.isVertical ? BodyMotion.softLimit((m.bounce.rawPose(f, dt) + m.branchBounce.rawPose(f, dt)) * SwayMod.gain, .012) : 0;
+            double shift = BodyMotion.softLimit((m.shift.rawPose(f, dt) + m.brakeShift.rawPose(f, dt)) * SwayMod.gain, m.cfg.get("stop.maxShiftM"));
+            GL11.glTranslated(BodyMotion.softLimit(m.sway.rawPose(f, dt) * SwayMod.gain, m.sway.max), y, shift);
+            GL11.glTranslated(0, SwayMod.pivot, 0);
+            GL11.glRotated(BodyMotion.softLimit(m.roll.rawPose(f, dt) * SwayMod.gain, m.roll.max), 0, 0, 1);
+            GL11.glRotated(BodyMotion.softLimit(m.pitch.rawPose(f, dt) * SwayMod.gain, m.cfg.get("stop.maxPitchDeg")), 1, 0, 0);
+            GL11.glTranslated(0, -SwayMod.pivot, 0);
         } catch (Exception e) {
             isFailed = true;
             Logger.getLogger("RTMClientSway").log(java.util.logging.Level.SEVERE, "Sway disabled: incompatible RTM API", e);
@@ -115,7 +104,7 @@ public final class SwayHook {
                 boolean isNear = distance[j] <= 1.25 * 1.25;
                 if (speed > .10 && isNear && !s.isInside[i][j] && s.cool[i][j] == 0) {
                     int dir = Math.abs(lat) > .01 ? (int)Math.signum(lat) : ((s.id + i) & 1) == 0 ? 1 : -1;
-                    s.motion.impact(j == 1, dir, speed, s.cfg.branch);
+                    s.motion.impact(j == 1, dir, speed, SwayMod.branch);
                     s.cool[i][j] = j == 0 ? 10 : 12;
                 }
                 s.isInside[i][j] = isNear;
@@ -221,8 +210,6 @@ public final class SwayHook {
         int tick, dir, id;
         double x, z, yaw, speed;
         BodyMotion motion;
-        String model;
-        VehicleConfig.Profile cfg;
         final double[] bx = new double[2], bz = new double[2];
         final boolean[] isBogie = new boolean[2];
         final boolean[][] isInside = new boolean[2][2];

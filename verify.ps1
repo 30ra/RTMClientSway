@@ -30,7 +30,3 @@ if ($LASTEXITCODE -ne 0) { throw 'tuning tests failed' }
 if ($LASTEXITCODE -ne 0) { throw 'config test compile failed' }
 & java -cp "$verify;$cp" rtmsway.VerifyTuningConfig
 if ($LASTEXITCODE -ne 0) { throw 'config tests failed' }
-& javac -encoding UTF-8 -source 8 -target 8 -cp $cp -d $verify (Join-Path $PSScriptRoot 'tools\VerifyVehicles.java')
-if ($LASTEXITCODE -ne 0) { throw 'vehicle test compile failed' }
-& java -cp "$verify;$cp" rtmsway.VerifyVehicles
-if ($LASTEXITCODE -ne 0) { throw 'vehicle tests failed' }

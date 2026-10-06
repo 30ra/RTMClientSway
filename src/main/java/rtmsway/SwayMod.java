@@ -8,7 +8,7 @@ import cpw.mods.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.common.config.Configuration;
 import java.io.File;
 
-@Mod(modid="rtmclientsway", name="RTM Client Sway", version="1.1.0-dev.4", acceptedMinecraftVersions="[1.7.10]", acceptableRemoteVersions="*", guiFactory="rtmsway.SwayGuiFactory")
+@Mod(modid="rtmclientsway", name="RTM Client Sway", version="1.1.0-dev.5", acceptedMinecraftVersions="[1.7.10]", acceptableRemoteVersions="*", guiFactory="rtmsway.SwayGuiFactory")
 public final class SwayMod {
     public static Configuration config;
     static Tuning tuning = new Tuning();
@@ -33,7 +33,6 @@ public final class SwayMod {
         stop = value("stop", 1, 0, 5, "停車時の揺り返しの強さ");
         pivot = value("pivotHeight", 1.15, 0, 4, "回転中心の高さ(m)。参考元の既定値は1.15。保存済み設定は維持します");
         tuning = TuningConfig.load(config, configDir);
-        VehicleConfig.load(config, configDir);
         config.getCategory("sway").setLanguageKey("rtmclientsway.config.general");
         for (String name : new String[]{"curve", "straight", "turnout", "stop"})
             config.getCategory(name).setLanguageKey("rtmclientsway.config." + name);
