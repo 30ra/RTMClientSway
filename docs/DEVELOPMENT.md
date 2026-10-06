@@ -17,7 +17,7 @@ powershell -File build.ps1
 powershell -File build.ps1 -Cache "D:\gradle-cache"
 ```
 
-生成先は`dist/RTMClientSway-1.1.0-dev.jar`です。正式版のJARは上書きしません。
+生成先は`dist/RTMClientSway-1.1.1-dev.jar`です。旧バージョンのJARは上書きしません。
 対象のKaizPatchX JARへ描画処理を組み込んだバイトコードを検証する場合：
 
 ```powershell
