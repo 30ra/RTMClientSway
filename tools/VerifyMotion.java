@@ -4,13 +4,16 @@ package rtmsway;
 public final class VerifyMotion {
     private static void check(boolean ok, String message) { if (!ok) throw new AssertionError(message); }
     private static void update(BodyMotion m, double speed, double prev, double lat, double cant, int dir, int brake, double run) {
-        m.update(.05, speed, prev, lat, cant, dir, brake, run, 1, 1);
+        m.update(.05, speed * dir, prev * dir, lat, cant, dir, brake, false);
+    }
+    private static BodyMotion quiet(long id, double speed) {
+        Tuning t = new Tuning(); t.values.put("straight.defaultScale", 0.0); return new BodyMotion(id, speed, t);
     }
     public static void main(String[] args) {
         BodyMotion still = new BodyMotion(1, 0);
         for (int i = 0; i < 100; i++) update(still, 0, 0, 0, 0, 1, 8, 1);
         check(still.roll.x == 0 && still.pitch.x == 0 && still.bounce.x == 0, "initial stop must not shake");
-        BodyMotion left = new BodyMotion(1, 20), right = new BodyMotion(1, 20), canted = new BodyMotion(1, 20);
+        BodyMotion left = quiet(1, 20), right = quiet(1, 20), canted = quiet(1, 20);
         for (int i = 0; i < 500; i++) {
             update(left, 20, 20, .8, 0, 1, 0, 0);
             update(right, 20, 20, -.8, 0, 1, 0, 0);
@@ -21,8 +24,8 @@ public final class VerifyMotion {
         check(Math.abs(canted.roll.x) < 1e-8, "sufficient cant removes added lean");
         for (int i = 0; i < 3000; i++) update(left, 0, 0, 0, 0, 1, 0, 0);
         check(Math.abs(left.roll.x) < 1e-8, "curve rebound must settle");
-        BodyMotion toe = new BodyMotion(2, 15), frog = new BodyMotion(2, 15);
-        toe.impact(false, 1, 15, 1); frog.impact(true, 1, 15, 1);
+        BodyMotion toe = quiet(2, 15), frog = quiet(2, 15);
+        toe.impact(false, 1, 15); frog.impact(true, 1, 15);
         check(frog.branchBounce.v > toe.branchBounce.v && toe.branchBounce.v > 0, "frog/toe vertical impulses");
         double max = 0;
         for (int i = 0; i < 100; i++) { update(frog, 15, 15, 0, 0, 1, 0, 0); max = Math.max(max, Math.abs(frog.branchBounce.x)); }
@@ -43,7 +46,7 @@ public final class VerifyMotion {
         System.out.println("PASS: motion symmetry, cant, settling, turnout bounce, stop notches, reverse, bounds, interpolation, swept path");
     }
     private static BodyMotion stop(int brake, int dir) {
-        BodyMotion m = new BodyMotion(1, 2);
+        BodyMotion m = quiet(1, 2);
         double prev = 2;
         for (int i = 1; i <= 40; i++) { double speed = Math.max(0, 2 - i * .05); update(m, speed, prev, 0, 0, dir, brake, 0); prev = speed; }
         return m;

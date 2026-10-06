@@ -20,6 +20,13 @@ final class TuningConfig {
                 if (s.isInt) p.set((int)s.def); else p.set(s.def);
             }
         }
+        try { result.checkDynamics(); }
+        catch (IllegalArgumentException e) {
+            LOG.warning(e.getMessage() + "; 周波数と時間倍率を既定値へ戻します");
+            for (String key : new String[]{"curve.rollFrequencyHz", "curve.swayFrequencyHz", "curve.sluggishnessScale"}) {
+                Tuning.Spec s = Tuning.SPECS.get(key); result.values.put(key, s.def); property(config, s).set(s.def);
+            }
+        }
         Property notch = config.get("stop", "notchFactors", result.notch, "N,B1,B2,B3,B4,B5,B6,B7,非常の順。9個の倍率 [0～10]", 0, 10, true, 9);
         try {
             List<Double> values = new ArrayList<Double>(); for (double n : notch.getDoubleList()) values.add(n);

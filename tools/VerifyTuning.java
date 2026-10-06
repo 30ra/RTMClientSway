@@ -28,16 +28,18 @@ public final class VerifyTuning {
         reject("var MOTION_TUNING={}; /* incomplete");
         Tuning zero = parse("var MOTION_TUNING={curve:{maxRollDeg:0,maxSwayM:0,rollDamping:0,swayDamping:1},stop:{maxPitchDeg:0,maxShiftM:0}};");
         BodyMotion z = new BodyMotion(1, 20, zero);
-        for (int i = 0; i < 100; i++) z.update(.05,20,20,.8,0,1,0,1,1,1);
+        for (int i = 0; i < 100; i++) z.update(.05,20,20,.8,0,1,0,false);
         check(z.roll.pose(.5,.05)==0 && z.sway.pose(.5,.05)==0 && Double.isFinite(z.sway.v), "zero limits and critical damping");
-        Tuning high = parse("var MOTION_TUNING={curve:{rollFrequencyHz:10,swayFrequencyHz:10,sluggishnessScale:0.05,rollDamping:1,swayDamping:1}};");
+        reject("var MOTION_TUNING={curve:{rollFrequencyHz:10,swayFrequencyHz:10,sluggishnessScale:0.05}};");
+        Tuning high = parse("var MOTION_TUNING={curve:{rollFrequencyHz:10,swayFrequencyHz:10,sluggishnessScale:1,rollDamping:1,swayDamping:1}};");
         BodyMotion h = new BodyMotion(1,20,high);
-        for (int i=0;i<500;i++) h.update(.05,20,20,.8,0,1,0,1,1,1);
+        for (int i=0;i<500;i++) h.update(.05,20,20,.8,0,1,0,false);
         check(Double.isFinite(h.roll.x) && Double.isFinite(h.roll.v), "high-frequency stable integration");
         Tuning normal = new Tuning(), doubled = new Tuning();
+        normal.values.put("straight.defaultScale",0.0); doubled.values.put("straight.defaultScale",0.0);
         doubled.values.put("curve.leanRollDeg",2.4);
         BodyMotion a = new BodyMotion(1,20,normal), b = new BodyMotion(1,20,doubled);
-        for(int i=0;i<500;i++){ a.update(.05,20,20,.8,0,1,0,0,1,1); b.update(.05,20,20,.8,0,1,0,0,1,1); }
+        for(int i=0;i<500;i++){ a.update(.05,20,20,.8,0,1,0,false); b.update(.05,20,20,.8,0,1,0,false); }
         check(b.roll.x > a.roll.x * 1.9, "imported parameters change calculation");
         if(args.length>0) {
             Tuning exported = new Tuning(); List<String> ignored=new ArrayList<String>();

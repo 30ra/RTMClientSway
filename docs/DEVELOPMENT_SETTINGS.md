@@ -1,57 +1,38 @@
 # 開発版の設定
 
-正式リリース前の機能です。開発版JARは公開配布しません。公開READMEにはリリース済み機能のみを記載します。
+現在の開発版は `1.1.0-dev.6` です。JARはローカルにのみ保管し、公開READMEには正式リリース済みの説明だけを記載します。
 
-開発版1.1.0-dev.5では、[RTMBodyMotion](https://github.com/C-TREC/RTMBodyMotion)（C-TREC & 月島重工）の動揺計算をJavaへ移植しています。曲線のカント不足・進入退出の衝撃、速度に応じた確率的な走行動揺、各台車のトングレール・クロッシング通過衝撃、制動・停止衝動を、固有周波数と減衰を持つばねで処理します。乗客荷重機能は含みません。この開発版のゲーム内動作は未確認です。
+## 設定画面
 
-| 場面 | 車体の動き |
-|---|---|
-| 走行中 | 速度と走行距離に応じた上下・左右の揺れと傾き |
-| カーブ | 速度、台車の向き、線路の傾きに応じた追加の傾き |
-| 分岐 | 分岐方向に応じた傾きと横方向の衝撃 |
-| 停車 | 停止直前の減速の強さと変化に応じた揺り返し |
+「Mods → RTM Client Sway → Config」から変更します。基本設定には全体のON/OFFとPreviewer取り込み操作だけを残し、動揺の調整は参考元と同じ `curve / straight / turnout / stop` の項目に統一しています。
 
-前進・後退の両方が対象です。車体と一緒に方向幕や発光部も動きます。
+MOD独自の `strength / running / curve / switch / stop` 倍率、`vertical`、`pivotHeight` は廃止しました。旧cfgにあっても適用しません。設定を整理する前に `.before-reference-時刻.bak` を作成します。回転中心は参考元の1.15 mに固定です。
 
-## 設定
+- 走行時の揺れ：`straight.defaultScale` または `rollStdDeg / swayStdM / bounceStdM`。
+- カーブの揺れ：`curve.amplitudeScale`、持続外傾や進入衝撃の設定。
+- 分岐：`turnout.toe*` と `turnout.frog*` の設定。
+- 制動・停止：`stop` の各衝撃量・周波数・減衰。
+- 上下動を不要にする場合：`straight.bounceStdM` と `turnout.toeBounceImpulse / frogBounceImpulse` を0にします。
 
-タイトル画面の「Mods → RTM Client Sway → Config」から変更できます。
+設定ファイルは `config/rtmclientsway.cfg` です。共通の詳細設定は保存済みの値を維持します。独自倍率だけを除去する変更であり、既に調整した詳細項目を自動で既定値へ戻しません。
 
-開発版1.1.0-dev.5のConfig画面は「基本設定」「curve / 曲線」「straight / 走行」「turnout / 分岐」「stop / 制動・停止」に分かれています。詳細設定にはPreviewerと同じ項目名・単位を使用し、日本語の説明を表示します。`notchFactors`はN・B1～B7・非常の順の9個です。数値には安全な範囲を設定しており、範囲外のプレビュー設定は読み込みません。
+## Previewer取り込み
 
-### Previewerの出力を読み込む（開発版）
+1. [Previewer](https://github.com/C-TREC/RTMBodyMotionPreviewer/releases/tag/v1.0.0)から `MOTION_TUNING.js` を書き出します。
+2. 使用する起動構成の `config/rtmclientsway/` へ置きます。
+3. 基本設定の `importPreview` をONにして保存します。
+4. 成功するとOFFに戻ります。詳細設定を開き直して値を確認できます。
 
-1. [RTMBodyMotion Previewer](https://github.com/C-TREC/RTMBodyMotionPreviewer/releases/tag/v1.0.0)から`MOTION_TUNING.js`を書き出します。全項目・変更項目のみの両方に対応します。
-2. 使用するMinecraft起動構成の`config/rtmclientsway/`フォルダーを作り、そこへファイルを置きます。
-3. Config画面の基本設定で`importPreview`をONにして保存します。タイトル画面でも実行できます。
-4. 詳細設定を開き直すと、読み込んだ値を確認・変更できます。成功時は`importPreview`が自動でOFFに戻ります。
+取り込みは一度だけです。共通の詳細設定を置き換え、省略項目は参考元の既定値を使用します。取り込み前にcfgをバックアップします。失敗したファイルは適用しません。JavaScriptのコードは実行せず、設定データとして解析します。乗客荷重の `load`、描画試験用の `debug` は適用しません。
 
-これは一度だけ取り込む操作です。読み込み後にConfig画面で変更した値は維持され、ファイルが自動で上書きし続けることはありません。再度読み込む場合は`importPreview`をONにします。省略項目は参考元の既定値で補われるため、詳細設定全体を置き換えます。基本設定のON/OFF・倍率・回転中心は維持します。
+## 参考元との比較
 
-取り込み前の`rtmclientsway.cfg`は同じフォルダーへ`.before-import-時刻.bak`としてバックアップします。提供ファイル自体は変更しません。失敗時は詳細設定を維持し、理由をログに記録します。`load`・`debug`・未知の項目は未適用としてログに記録します。ファイルはUTF-8の設定データとして解析し、JavaScriptのコードは実行しません。
+参照コミットは `4790b6a49f5a24d64a9c3f850a8c52db5b7a66ab` です。乗客荷重を無効にし、同じ入力と補間係数を与えたJSとJavaの比較テストを行います。乱数シード、符号付き速度による加速度、ばねの5ms積分、曲線イベント、分岐衝撃、停止衝動、Hermite補間を合わせています。
 
-プレビューとの比較時は各倍率を1にします。回転中心は参考元の1.15 mに合わせることもできます。線路・速度・車両モデルなどの入力が違うため、プレビューとゲーム内の完全一致は保証しません。
+これは全パック・実機描画の完全一致を保証するものではありません。実際の線路形状・台車情報・描画タイミングによる確認は別途必要です。さらに、0の描画上限ではNaNを避ける安全処理を残し、固有周波数/sluggishnessScaleが10Hzを超える設定は異なる積分に置き換えず拒否します。
 
-| 項目 | 内容 | 初期値 |
-|---|---|---|
-| `enabled` | 揺れのON/OFF | ON |
-| `strength` | 全体の倍率 | 1 |
-| `running` | 走行中の揺れの倍率 | 1 |
-| `curve` | カーブの傾きの倍率 | 1 |
-| `switch` | 分岐の傾き・横衝撃の倍率 | 1 |
-| `stop` | 停車時の揺り返しの倍率 | 1 |
-| `vertical` | 走行・分岐時の上下動のON/OFF（開発版） | ON |
-| `pivotHeight` | 車体が傾くときの回転中心の高さ | 安定版1.5 m／開発版1.15 m（保存済み値は維持） |
+## 全車両共通
 
-倍率は0～5です。1が標準、0でその効果を無効にします。`strength`は各場面の倍率にさらに掛かります。
-
-全体を弱くするなら`strength`を下げ、分岐だけ強くするなら`switch`を上げます。
-`pivotHeight`は0～4 mです。通常は初期値のままで使用してください。
-
-設定ファイルは`config/rtmclientsway.cfg`です。ファイルを直接編集する場合は、Minecraftを終了してから編集してください。
-
-## 全車両共通設定
-
-車両別設定はdev.5で廃止しました。全車両で共通の設定を使用します。旧cfgのvehiclesカテゴリは読み込まず、既存データは削除しません。必要なら旧版への復元に利用できます。共通のPreviewer取り込み・詳細設定・ON/OFFは維持しています。
+車両別設定はdev.5で廃止済みです。旧cfgの `vehicles` は使用せず、既存データは削除しません。ZIP単位の設定とRTMAddonPackChecker連携はありません。
 
 

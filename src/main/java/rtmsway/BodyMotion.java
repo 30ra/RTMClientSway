@@ -22,7 +22,7 @@ final class BodyMotion {
     }
     BodyMotion(long seed, double speed, Tuning cfg) {
         this.cfg = cfg;
-        straightScale = cfg.get("straight.defaultScale");
+        straightScale = Math.max(0, Math.min(cfg.get("straight.defaultScale"), cfg.get("straight.maxScale")));
         roll = new Spring(cfg.rollHz(), cfg.get("curve.rollDamping"), cfg.get("curve.maxRollDeg"));
         sway = new Spring(cfg.swayHz(), cfg.get("curve.swayDamping"), cfg.get("curve.maxSwayM"));
         branchBounce = new Spring(cfg.get("turnout.bounceFrequencyHz"), cfg.get("turnout.bounceDamping"), .012);
@@ -34,18 +34,22 @@ final class BodyMotion {
         rollNoise = noise(cfg.get("straight.rollStdDeg"), roll.hz, roll.damping);
         swayNoise = noise(cfg.get("straight.swayStdM"), sway.hz, sway.damping);
         bounceNoise = noise(cfg.get("straight.bounceStdM"), bounce.hz, bounce.damping);
-        this.seed = Math.abs(seed % 2147483646L) + 1;
-        isArmed = speed > .25;
+        this.seed = (Math.abs(seed) * 7919L + 12345L) % 2147483646L + 1;
+        isArmed = Math.abs(speed) > .25;
     }
 
     void update(double seconds, double speed, double prevSpeed, double lat,
-                double cant, int dir, int brake, double run, double curve, double stop) {
+                double cant, int dir, int brake, boolean isBad) {
         dt = seconds;
+        double signedSpeed = speed;
+        speed = Math.abs(speed);
         roll.save(); sway.save(); bounce.save(); branchBounce.save(); pitch.save(); shift.save(); brakeShift.save();
         // カント不足だけを追加動揺にする。既存RTMのカント描画を二重に加えない。
         int ticks = (int)Math.round(dt * 20);
-        double radius = Math.abs(lat) > .000001 ? speed * speed / Math.abs(lat) : 1e9;
-        double deficit = Math.max(0, 1067 * Math.pow(speed * 3.6, 2) / (127 * radius)
+        double curvature = speed > .20 ? Math.abs(lat / (signedSpeed * signedSpeed)) : 0;
+        double radius = curvature > .000001 ? 1 / curvature : 1e9;
+        double kmh = speed * 3.6;
+        double deficit = Math.max(0, 1067 * kmh * kmh / (127 * radius)
             - 1067 * Math.tan(Math.abs(cant) * Math.PI / 180));
         double input = speed >= cfg.get("curve.minSpeedMps") && deficit >= cfg.get("curve.minCantDeficiencyMm") ? limit(Math.signum(lat) * 9.80665 * deficit / 1067, 3) : 0;
         int sign = Math.abs(input) > .0001 ? (int)Math.signum(input) : 0;
@@ -55,13 +59,13 @@ final class BodyMotion {
         if (stable < 2) input = 0;
         lateral += (input - lateral) * Math.min(1, dt * Math.PI * 2 * cfg.get("curve.inputFilterHz"));
         double ratio = Math.signum(lateral) * response(lateral);
-        double rawAccel = limit((speed - prevSpeed) / dt, 3.5);
+        double rawAccel = isBad ? 0 : limit((signedSpeed - prevSpeed) / dt, 3.5);
         accel += (rawAccel - accel) * Math.min(1, dt * 5);
-        double nextDecel = Math.max(0, -accel), jerk = (nextDecel - decel) / dt;
+        double nextDecel = Math.max(0, -accel * dir), jerk = (nextDecel - decel) / dt;
         cool = Math.max(0, cool - (int)Math.round(dt * 20));
         if (nextDecel > cfg.get("stop.emergencyDecelMps2") && jerk > cfg.get("stop.emergencyJerkMps3") && cool == 0) {
-            pitch.v += dir * cfg.get("stop.emergencyPitchImpulse") * stop;
-            brakeShift.v += dir * cfg.get("stop.emergencyShiftImpulseM") * stop;
+            pitch.v += dir * cfg.get("stop.emergencyPitchImpulse");
+            brakeShift.v += dir * cfg.get("stop.emergencyShiftImpulseM");
             cool = 20;
         }
         if (!isArmed && speed > .25) { isArmed = true; peak = 0; }
@@ -69,57 +73,69 @@ final class BodyMotion {
         if (isArmed && speed < .06) {
             if (brake >= cfg.get("stop.minimumBrakeLevel") && peak >= cfg.get("stop.minimumDecelMps2")) {
                 double strength = Math.min(1, (peak - cfg.get("stop.minimumDecelMps2")) / 1.5);
-                pitch.v += dir * cfg.get("stop.pitchImpulse") * cfg.notch[Math.min(8, brake)] * (1 + strength * .15) * stop;
-                shift.v += dir * cfg.get("stop.shiftImpulseM") * cfg.notch[Math.min(8, brake)] * (1 + strength * .10) * stop;
+                pitch.v += dir * cfg.get("stop.pitchImpulse") * cfg.notch[Math.min(8, brake)] * (1 + strength * .15);
+                shift.v += dir * cfg.get("stop.shiftImpulseM") * cfg.notch[Math.min(8, brake)] * (1 + strength * .10);
             }
             isArmed = false; peak = 0;
         }
         decel = nextDecel;
         // 参考元と同じく、速度で重み付けした確率的入力をばねへ渡す。
         double gain = Math.min(straightScale, cfg.get("straight.maxScale"))
-            * (1 - Math.exp(-Math.max(0, speed * 3.6 - cfg.get("straight.minSpeedKmh")) / cfg.get("straight.referenceSpeedKmh"))) * run;
+            * (1 - Math.exp(-Math.max(0, speed * 3.6 - cfg.get("straight.minSpeedKmh")) / cfg.get("straight.referenceSpeedKmh")));
         double root = Math.sqrt(dt) * gain;
-        curveEvent(ticks, curve);
-        if (gain > 0) {
+        curveEvent(ticks);
+        if (!isBad && gain > 0) {
             roll.v += rollNoise * root * gaussian();
             sway.v += swayNoise * root * gaussian();
             bounce.v += bounceNoise * root * gaussian();
         }
-        roll.step(ratio * cfg.get("curve.leanRollDeg") * cfg.get("curve.amplitudeScale") * curve, dt);
-        sway.step(-ratio * cfg.get("curve.leanSwayM") * cfg.get("curve.amplitudeScale") * curve, dt);
+        roll.step(ratio * cfg.get("curve.leanRollDeg") * cfg.get("curve.amplitudeScale"), dt);
+        sway.step(-ratio * cfg.get("curve.leanSwayM") * cfg.get("curve.amplitudeScale"), dt);
         bounce.step(0, dt); branchBounce.step(0, dt); pitch.step(0, dt); shift.step(0, dt); brakeShift.step(0, dt);
     }
     void straightAdjust(double adjust, double seconds) {
         double target = Math.max(0, Math.min(cfg.get("straight.maxScale"), cfg.get("straight.defaultScale") + adjust));
         straightScale += (target - straightScale) * Math.min(1, seconds * 2);
     }
+    void initialAdjust(double adjust) {
+        straightScale = Math.max(0, Math.min(cfg.get("straight.maxScale"), cfg.get("straight.defaultScale") + adjust));
+    }
+    void reset(double speed) {
+        accel = lateral = decel = peak = reference = injectedRoll = injectedSway = 0;
+        candidate = stable = curveDir = stageSign = stageTicks = exitTicks = 0;
+        isCurve = false; isArmed = Math.abs(speed) > .25;
+    }
 
     private double random() { seed = seed * 16807 % 2147483647; return seed / 2147483647.0; }
     private double gaussian() { return Math.sqrt(-2 * Math.log(Math.max(random(), 1e-12))) * Math.cos(2 * Math.PI * random()); }
-    private double response(double value) { return Math.tanh(Math.abs(value) * 1067 / (9.80665 * cfg.get("curve.saturationMm"))); }
-    private void stage(double from, double to, double gain) {
+    private double response(double value) {
+        double v = Math.abs(value) * 1067 / 9.80665 / cfg.get("curve.saturationMm");
+        if (v > 20) return 1;
+        double e = Math.exp(2 * v); return (e - 1) / (e + 1);
+    }
+    private void stage(double from, double to) {
         double delta = response(to) - response(from);
         double r = curveRollV, x = curveSwayV;
         double ri = limit(delta * r, Math.max(0, r * 2 - injectedRoll));
         double xi = limit(delta * x, Math.max(0, x * 2 - injectedSway));
-        roll.v += curveDir * ri * gain; sway.v -= curveDir * xi * gain;
+        roll.v += curveDir * ri; sway.v -= curveDir * xi;
         injectedRoll += Math.abs(ri); injectedSway += Math.abs(xi);
     }
-    private void exit(double factor, double gain) {
+    private void exit(double factor) {
         double ratio = response(reference) * factor;
-        roll.v -= curveDir * ratio * curveRollV * gain;
-        sway.v += curveDir * ratio * curveSwayV * gain;
+        roll.v -= curveDir * ratio * curveRollV;
+        sway.v += curveDir * ratio * curveSwayV;
         isCurve = false; curveDir = stageSign = stageTicks = exitTicks = 0;
         reference = injectedRoll = injectedSway = 0;
     }
-    private void curveEvent(int ticks, double gain) {
+    private void curveEvent(int ticks) {
         int dir = Math.abs(lateral) > .0001 ? (int)Math.signum(lateral) : 0;
         double magnitude = Math.abs(lateral);
         if (!isCurve) {
             if (dir == 0 || magnitude < .008) return;
             isCurve = true; curveDir = dir; reference = magnitude;
             injectedRoll = injectedSway = 0; stageSign = stageTicks = exitTicks = 0;
-            stage(0, magnitude, gain);
+            stage(0, magnitude);
         }
         if (dir == curveDir && magnitude >= .004) {
             exitTicks = 0;
@@ -128,22 +144,22 @@ final class BodyMotion {
                 int sign = (int)Math.signum(delta);
                 if (stageSign == sign) stageTicks += ticks;
                 else { stageSign = sign; stageTicks = ticks; }
-                if (stageTicks >= cfg.get("curve.stageHoldTicks")) { stage(reference, magnitude, gain); reference = magnitude; stageSign = stageTicks = 0; }
+                if (stageTicks >= cfg.get("curve.stageHoldTicks")) { stage(reference, magnitude); reference = magnitude; stageSign = stageTicks = 0; }
             } else stageSign = stageTicks = 0;
             return;
         }
-        if (dir == -curveDir && magnitude >= .008) { exit(cfg.get("curve.reverseExitFactor"), gain); curveEvent(ticks, gain); return; }
+        if (dir == -curveDir && magnitude >= .008) { exit(cfg.get("curve.reverseExitFactor")); curveEvent(ticks); return; }
         exitTicks += ticks;
-        if (exitTicks >= cfg.get("curve.exitHoldTicks")) exit(cfg.get("curve.exitResponseFactor"), gain);
+        if (exitTicks >= cfg.get("curve.exitHoldTicks")) exit(cfg.get("curve.exitResponseFactor"));
     }
 
-    void impact(boolean isFrog, int dir, double speed, double gain) {
+    void impact(boolean isFrog, int dir, double speed) {
         double min = cfg.get("turnout.minSpeedFactor");
         double factor = min + (1 - min) / (1 + Math.pow(speed * 3.6 / cfg.get("turnout.speedFalloffKmh"), 2));
         String kind = isFrog ? "frog" : "toe";
-        roll.v += dir * peakVelocity(cfg.get("turnout." + kind + "PeakRollDeg"), roll.hz, roll.damping) * factor * gain;
-        sway.v -= dir * peakVelocity(cfg.get("turnout." + kind + "PeakSwayM"), sway.hz, sway.damping) * factor * gain;
-        branchBounce.v += cfg.get("turnout." + kind + "BounceImpulse") * factor * gain;
+        roll.v += dir * peakVelocity(cfg.get("turnout." + kind + "PeakRollDeg"), roll.hz, roll.damping) * factor;
+        sway.v -= dir * peakVelocity(cfg.get("turnout." + kind + "PeakSwayM"), sway.hz, sway.damping) * factor;
+        branchBounce.v += cfg.get("turnout." + kind + "BounceImpulse") * factor;
     }
 
     static double limit(double v, double max) { return Math.max(-max, Math.min(max, v)); }
@@ -165,8 +181,7 @@ final class BodyMotion {
         void save() { prev = x; prevV = v; }
         void step(double target, double dt) {
             double w = Math.PI * 2 * hz;
-            double maxStep = Math.min(.005, .25 / (w * (1 + 2 * damping)));
-            int steps = Math.max(1, (int)Math.ceil(dt / maxStep));
+            int steps = Math.max(1, (int)Math.ceil(dt / .005));
             double h = dt / steps;
             for (int i = 0; i < steps; i++) {
                 v += ((target - x) * w * w - v * 2 * damping * w) * h;

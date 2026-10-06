@@ -19,6 +19,13 @@ public final class VerifyTuningConfig {
         c.get("vehicles.legacy", "enabled", "").set("false");
         c.get("vehicles.legacy", "curve.leanRollDeg", "").set("9");
         TuningConfig.load(c,dir.toFile()); c.save();
+        c.get("sway", "strength", 1.0).set(5.0);
+        c.get("sway", "pivotHeight", 1.15).set(3.0); c.save();
+        SwayMod.config = c; SwayMod.configDir = dir.toFile(); SwayMod.reload();
+        check(!c.getCategory("sway").containsKey("strength") && !c.getCategory("sway").containsKey("pivotHeight"), "legacy multipliers removed");
+        try(java.util.stream.Stream<Path> files=Files.list(dir)) {
+            check(files.anyMatch(p->p.toString().contains("before-reference")), "legacy config backup");
+        }
         Path source=dir.resolve("rtmclientsway/MOTION_TUNING.js"); Files.createDirectories(source.getParent());
         Files.write(source,"var MOTION_TUNING={curve:{leanRollDeg:2.4,stageHoldTicks:3},stop:{notchFactors:[0,0,0,0,0,1,2,3,4]}};".getBytes(StandardCharsets.UTF_8));
         c.get("sway","importPreview",false).set(true);

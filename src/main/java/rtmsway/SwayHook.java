@@ -31,49 +31,53 @@ public final class SwayHook {
                 double move = s == null ? 0 : Math.hypot(x - s.x, z - s.z);
                 double dyaw = s == null ? 0 : wrap(yaw - s.yaw);
                 // 再読込・瞬間移動・更新飛びでは衝撃を生成しない。
-                if (s == null || dt <= 0 || dt > .25 || move > speed * dt * 3 + 3 || Math.abs(dyaw) > 45) {
+                if (s == null) {
                     s = new State();
                     s.id = number(call(entity, "func_145782_y")).intValue();
-                    s.motion = new BodyMotion(s.id * 7919L + 1, speed, SwayMod.tuning);
-                    s.dir = num(call(entity, "getSpeed")) < 0 ? -1 : 1;
+                    s.motion = new BodyMotion(s.id, speed, SwayMod.tuning);
+                    s.motion.initialAdjust(adjust(entity, s.motion.cfg.dataMapKey));
+                    s.dir = number(call(entity, "getTrainDirection")).intValue() == 1 ? -1 : 1;
                     for (int i = 0; i < 2; i++) if (bogies[i] != null) {
                         s.bx[i] = pos(bogies[i], 0); s.bz[i] = pos(bogies[i], 2);
                         s.isBogie[i] = true;
                     }
                     states.put(entity, s);
+                } else if (dt <= 0 || dt > .25) {
+                    s.motion.reset(speed);
+                    for (int i = 0; i < 2; i++) {
+                        Arrays.fill(s.isInside[i], false);
+                        s.bx[i] = bogies[i] == null ? x : pos(bogies[i], 0);
+                        s.bz[i] = bogies[i] == null ? z : pos(bogies[i], 2);
+                    }
                 } else {
+                    boolean isBad = move > speed * dt * 3 + 3 || Math.abs(dyaw) > 45;
                     double projected = (x - s.x) * Math.sin(Math.toRadians(yaw)) + (z - s.z) * Math.cos(Math.toRadians(yaw));
-                    if (Math.abs(projected) > .0005) s.dir = projected > 0 ? 1 : -1;
-                    double yawRate = speed > .20 ? BodyMotion.limit(Math.toRadians(dyaw) / dt, .80) : 0;
+                    if (!isBad && Math.abs(projected) > .0005) s.dir = projected > 0 ? 1 : -1;
+                    double yawRate = !isBad && speed > .20 ? BodyMotion.limit(dyaw * Math.PI / 180 / dt, .80) : 0;
                     double lat = speed * s.dir * yawRate;
-                    double cant = bogies[0] == null || bogies[1] == null ? 0 :
-                        (numField(bogies[0], "rotationRoll") - numField(bogies[1], "rotationRoll")) * .5;
+                    double cant = ((bogies[0] == null ? 0 : numField(bogies[0], "rotationRoll"))
+                        - (bogies[1] == null ? 0 : numField(bogies[1], "rotationRoll"))) * .5;
                     int brake = Math.max(0, Math.min(8, -number(call(entity, "getNotch")).intValue()));
                     // 衝撃を加えてから共通ばねを積分する。フレーム補間の始点には衝撃前速度を使う。
                     double rv = s.motion.roll.v, xv = s.motion.sway.v, bv = s.motion.branchBounce.v;
-                    if (!s.motion.cfg.dataMapKey.isEmpty()) {
-                        Object resource = call(entity, "getResourceState");
-                        Object data = resource == null ? null : call(resource, "getDataMap");
-                        double adjust = data == null ? 0 : num(call(data, "getDouble", s.motion.cfg.dataMapKey));
-                        s.motion.straightAdjust(adjust, dt);
-                    }
-                    impacts(entity, s, bogies, speed, lat, (int)Math.round(dt * 20));
-                    s.motion.update(dt, speed, s.speed, lat, cant, s.dir, brake, SwayMod.run, SwayMod.curve, SwayMod.stop);
+                    s.motion.straightAdjust(adjust(entity, s.motion.cfg.dataMapKey), dt);
+                    impacts(entity, s, bogies, speed, lat, (int)Math.round(dt * 20), isBad);
+                    s.motion.update(dt, speed * s.dir, s.speed, lat, cant, s.dir, brake, isBad);
                     s.motion.roll.prevV = rv; s.motion.sway.prevV = xv; s.motion.branchBounce.prevV = bv;
                 }
-                s.tick = tick; s.x = x; s.z = z; s.yaw = yaw; s.speed = speed;
+                s.tick = tick; s.x = x; s.z = z; s.yaw = yaw; s.speed = speed * s.dir;
+                s.tickNanos = System.nanoTime();
             }
-            double f = Math.max(0, Math.min(1, frame)), dt = s.motion.dt;
+            double f = resolveAlpha(s, frame), dt = s.motion.dt;
             if (!Double.isFinite(f)) return;
             BodyMotion m = s.motion;
-            // 倍率も制限前に適用し、Previewerの最大値を描画段階で超えない。
-            double y = SwayMod.isVertical ? BodyMotion.softLimit((m.bounce.rawPose(f, dt) + m.branchBounce.rawPose(f, dt)) * SwayMod.gain, .012) : 0;
-            double shift = BodyMotion.softLimit((m.shift.rawPose(f, dt) + m.brakeShift.rawPose(f, dt)) * SwayMod.gain, m.cfg.get("stop.maxShiftM"));
-            GL11.glTranslated(BodyMotion.softLimit(m.sway.rawPose(f, dt) * SwayMod.gain, m.sway.max), y, shift);
-            GL11.glTranslated(0, SwayMod.pivot, 0);
-            GL11.glRotated(BodyMotion.softLimit(m.roll.rawPose(f, dt) * SwayMod.gain, m.roll.max), 0, 0, 1);
-            GL11.glRotated(BodyMotion.softLimit(m.pitch.rawPose(f, dt) * SwayMod.gain, m.cfg.get("stop.maxPitchDeg")), 1, 0, 0);
-            GL11.glTranslated(0, -SwayMod.pivot, 0);
+            double y = BodyMotion.softLimit(m.bounce.rawPose(f, dt) + m.branchBounce.rawPose(f, dt), .012);
+            double shift = BodyMotion.softLimit(m.shift.rawPose(f, dt) + m.brakeShift.rawPose(f, dt), m.cfg.get("stop.maxShiftM"));
+            GL11.glTranslated(m.sway.pose(f, dt), y, shift);
+            GL11.glTranslated(0, 1.15, 0);
+            GL11.glRotated(m.roll.pose(f, dt), 0, 0, 1);
+            GL11.glRotated(BodyMotion.softLimit(m.pitch.rawPose(f, dt), m.cfg.get("stop.maxPitchDeg")), 1, 0, 0);
+            GL11.glTranslated(0, -1.15, 0);
         } catch (Exception e) {
             isFailed = true;
             Logger.getLogger("RTMClientSway").log(java.util.logging.Level.SEVERE, "Sway disabled: incompatible RTM API", e);
@@ -81,19 +85,54 @@ public final class SwayHook {
     }
     public static void end() { GL11.glPopMatrix(); }
 
-    private static void impacts(Object entity, State s, Object[] bogies, double speed, double lat, int ticks) throws Exception {
+    private static double adjust(Object entity, String key) throws Exception {
+        if (key.isEmpty()) return 0;
+        Object resource = call(entity, "getResourceState");
+        Object data = resource == null ? null : call(resource, "getDataMap");
+        return data == null ? 0 : num(call(data, "getDouble", key));
+    }
+    private static long frameNanos, wallTick = -1;
+    private static int frames, zeroFrames, probeTicks;
+    private static boolean isClock;
+    private static double resolveAlpha(State s, float frame) {
+        if (!Float.isFinite(frame)) return Double.NaN;
+        double alpha = Math.max(0, Math.min(1, frame));
+        long now = System.nanoTime();
+        if (now - frameNanos > 2000000L || now < frameNanos) {
+            frameNanos = now; frames++; if (alpha <= 0) zeroFrames++;
+        }
+        long tick = now / 50000000L;
+        if (tick != wallTick) {
+            wallTick = tick; probeTicks++;
+            if (probeTicks >= 100) {
+                isClock = frames / (double)probeTicks > 1.5 && zeroFrames >= frames;
+                frames = zeroFrames = probeTicks = 0;
+            }
+        }
+        return isClock ? Math.max(0, Math.min(1, (now - s.tickNanos) / 50000000.0)) : alpha;
+    }
+
+    private static void impacts(Object entity, State s, Object[] bogies, double speed, double lat, int ticks, boolean isBad) throws Exception {
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 2; j++) s.cool[i][j] = Math.max(0, s.cool[i][j] - ticks);
             Object bogie = bogies[i];
             if (bogie == null) { Arrays.fill(s.isInside[i], false); s.isBogie[i] = false; continue; }
             double x = pos(bogie, 0), z = pos(bogie, 2);
+            if (isBad || speed <= .10) { s.bx[i] = x; s.bz[i] = z; continue; }
             if (!s.isBogie[i]) { s.bx[i] = x; s.bz[i] = z; s.isBogie[i] = true; }
             double[] distance = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
             Object core = railCore(entity, bogie);
             if (core != null) {
                 Object sw = call(core, "getSwitch");
                 if (sw != null) for (Object point : (Object[])call(sw, "getPoints")) if (point != null && field(point, "rmBranch") != null) {
-                    double[][] ps = impactPoints(point);
+                    double[][] ps;
+                    try { ps = impactPoints(point); }
+                    catch (Exception e) {
+                        // 特殊分岐器で交点が計算できない場合も、参考元と同様にトング位置だけ残す。
+                        Object root = field(point, "rpRoot");
+                        if (root == null) continue;
+                        ps = new double[][]{{numField(root, "posX"), numField(root, "posZ")}};
+                    }
                     for (int j = 0; j < ps.length; j++) {
                         int kind = j == 0 ? 0 : 1;
                         distance[kind] = Math.min(distance[kind], segmentDistance(s.bx[i], s.bz[i], x, z, ps[j][0], ps[j][1]));
@@ -104,7 +143,7 @@ public final class SwayHook {
                 boolean isNear = distance[j] <= 1.25 * 1.25;
                 if (speed > .10 && isNear && !s.isInside[i][j] && s.cool[i][j] == 0) {
                     int dir = Math.abs(lat) > .01 ? (int)Math.signum(lat) : ((s.id + i) & 1) == 0 ? 1 : -1;
-                    s.motion.impact(j == 1, dir, speed, SwayMod.branch);
+                    s.motion.impact(j == 1, dir, speed);
                     s.cool[i][j] = j == 0 ? 10 : 12;
                 }
                 s.isInside[i][j] = isNear;
@@ -146,9 +185,10 @@ public final class SwayHook {
         double mOffset = .5335 * ((isMain && id == 1) || (!isMain && id == -1) ? 1 : -1);
         double bOffset = .5335 * ((isBranch && id == -1) || (!isBranch && id == 1) ? 1 : -1);
         double[][] m = sample(main, mOffset), b = sample(branch, bOffset);
-        int mi = 0, bi = 0; double best = Double.POSITIVE_INFINITY;
+        int mi = 0, bi = 0; double best = 1e9;
         for (int i = 0; i < m.length; i++) for (int j = 0; j < b.length; j++) {
-            double d = Math.pow(m[i][0] - b[j][0], 2) + Math.pow(m[i][1] - b[j][1], 2);
+            double dx = m[i][0] - b[j][0], dz = m[i][1] - b[j][1];
+            double d = dx * dx + dz * dz;
             if (d < best) { best = d; mi = i; bi = j; }
         }
         double[] mp = (double[])call(main, "getRailPos", 96, mi), bp = (double[])call(branch, "getRailPos", 96, bi);
@@ -209,6 +249,7 @@ public final class SwayHook {
     private static final class State {
         int tick, dir, id;
         double x, z, yaw, speed;
+        long tickNanos;
         BodyMotion motion;
         final double[] bx = new double[2], bz = new double[2];
         final boolean[] isBogie = new boolean[2];

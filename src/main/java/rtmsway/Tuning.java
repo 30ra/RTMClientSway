@@ -66,6 +66,10 @@ final class Tuning {
     double get(String path) { return values.get(path); }
     double rollHz() { return get("curve.rollFrequencyHz") / get("curve.sluggishnessScale"); }
     double swayHz() { return get("curve.swayFrequencyHz") / get("curve.sluggishnessScale"); }
+    void checkDynamics() {
+        if (rollHz() > 10 || swayHz() > 10)
+            throw new IllegalArgumentException("固有周波数/sluggishnessScaleは10Hz以下にしてください。参考元と同じ5ms積分を維持します");
+    }
     static final class Spec {
         final String group, key, path, comment;
         final double def, min, max;
@@ -116,5 +120,6 @@ final class Tuning {
                 else ignored.add(path);
             }
         }
+        checkDynamics();
     }
 }
