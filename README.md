@@ -39,6 +39,8 @@ v1.0.1からAngelica 2.2.29以上に対応しています。
 
 ## 主な機能
 
+開発版1.1.0-devでは、[RTMBodyMotion](https://github.com/C-TREC/RTMBodyMotion)（C-TREC & 月島重工）の動揺計算をJavaへ移植しています。曲線のカント不足・進入退出の衝撃、速度に応じた確率的な走行動揺、各台車のトングレール・クロッシング通過衝撃、制動・停止衝動を、固有周波数と減衰を持つばねで処理します。乗客荷重機能は含みません。この開発版のゲーム内動作は未確認です。
+
 | 場面 | 車体の動き |
 |---|---|
 | 走行中 | 速度と走行距離に応じた上下・左右の揺れと傾き |
@@ -60,7 +62,7 @@ v1.0.1からAngelica 2.2.29以上に対応しています。
 | `curve` | カーブの傾きの倍率 | 1 |
 | `switch` | 分岐の傾き・横衝撃の倍率 | 1 |
 | `stop` | 停車時の揺り返しの倍率 | 1 |
-| `vertical` | 走行・停車時の上下動のON/OFF | ON |
+| `vertical` | 走行・分岐時の上下動のON/OFF（開発版） | ON |
 | `pivotHeight` | 車体が傾くときの回転中心の高さ | 1.5 m |
 
 倍率は0～5です。1が標準、0でその効果を無効にします。`strength`は各場面の倍率にさらに掛かります。
@@ -92,6 +94,8 @@ v1.0.1からAngelica 2.2.29以上に対応しています。
 
 本プロジェクトのソースコードとドキュメントには[MIT License](LICENSE)を適用しています。
 
+RTMBodyMotion由来の計算・分岐判定には、参考元の利用条件も適用されます。車体動揺：C-TREC & 月島重工 制作の動揺JS（RTMBodyMotion v1.0）を使用・Java移植しています。詳細は[第三者ソフトウェアの表記](THIRD_PARTY_NOTICES.md)を参照してください。
+
 Copyright (c) 2026 hachiko-tokkai
 
 本MODは現状のまま提供します。動作・互換性・安全性を保証せず、使用に伴う不具合や損害について、作者は適用法令で認められる範囲において責任を負いません。詳細はLICENSEを確認してください。
@@ -101,3 +105,4 @@ Minecraft、Forge、KaizPatchXなどの第三者ソフトウェアの権利は�
 ## 参考資料
 
 - [KaizPatchX](https://github.com/Kai-Z-JP/KaizPatchX)
+- [RTMBodyMotion — C-TREC & 月島重工](https://github.com/C-TREC/RTMBodyMotion)

@@ -7,7 +7,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.common.config.Configuration;
 
-@Mod(modid="rtmclientsway", name="RTM Client Sway", version="1.0.1", acceptedMinecraftVersions="[1.7.10]", acceptableRemoteVersions="*", guiFactory="rtmsway.SwayGuiFactory")
+@Mod(modid="rtmclientsway", name="RTM Client Sway", version="1.1.0-dev", acceptedMinecraftVersions="[1.7.10]", acceptableRemoteVersions="*", guiFactory="rtmsway.SwayGuiFactory")
 public final class SwayMod {
     public static Configuration config;
     public static boolean isOn = true, isVertical = true;
@@ -21,7 +21,7 @@ public final class SwayMod {
     }
     public static void reload() {
         isOn = config.getBoolean("enabled", "sway", true, "車体の揺れを有効にする");
-        isVertical = config.getBoolean("vertical", "sway", true, "走行・停車時の上下動。分岐には上下衝撃を加えません");
+        isVertical = config.getBoolean("vertical", "sway", true, "走行・分岐時の上下動");
         gain = value("strength", 1, 0, 5, "すべての揺れに掛ける倍率。1が標準、0で揺れなし");
         run = value("running", 1, 0, 5, "走行中の揺れの強さ");
         curve = value("curve", 1, 0, 5, "カーブの追加傾斜の強さ");
