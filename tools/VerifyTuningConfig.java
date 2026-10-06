@@ -1,50 +1,31 @@
 package rtmsway;
-
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import net.minecraftforge.common.config.Configuration;
-
-/** Forgeの実際の設定クラスを使った保存・一度だけ取り込みのテスト。 */
+/** Forge設定の移行・保存・効果別スイッチを検証する。 */
 public final class VerifyTuningConfig {
-    private static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}
+    private static void check(boolean isOk,String message){if(!isOk)throw new AssertionError(message);}
     public static void main(String[] args)throws Exception{
-        Path dir=Files.createTempDirectory(Paths.get("build/verify"),"tuning-config-");
+        Path dir=Files.createTempDirectory(Paths.get("build/verify"),"config-");
         java.lang.reflect.Field home=cpw.mods.fml.relauncher.FMLInjectionData.class.getDeclaredField("minecraftHome");
-        home.setAccessible(true); home.set(null,dir.toFile()); // 本番ではForgeが設定する値。テスト用のみ。
-        File cfgFile=dir.resolve("rtmclientsway.cfg").toFile();
-        Configuration c=new Configuration(cfgFile); c.load();
-        // 廃止した車両別設定を残したcfgでも、共通設定だけが使われる。
-        c.get("vehicles", "models", new String[0]).set(new String[]{"LegacyTrain"});
-        c.get("vehicles.legacy", "enabled", "").set("false");
-        c.get("vehicles.legacy", "curve.leanRollDeg", "").set("9");
-        TuningConfig.load(c,dir.toFile()); c.save();
-        c.get("sway", "strength", 1.0).set(5.0);
-        c.get("sway", "pivotHeight", 1.15).set(3.0); c.save();
-        SwayMod.config = c; SwayMod.configDir = dir.toFile(); SwayMod.reload();
-        check(!c.getCategory("sway").containsKey("strength") && !c.getCategory("sway").containsKey("pivotHeight"), "legacy multipliers removed");
-        try(java.util.stream.Stream<Path> files=Files.list(dir)) {
-            check(files.anyMatch(p->p.toString().contains("before-reference")), "legacy config backup");
-        }
-        Path source=dir.resolve("rtmclientsway/MOTION_TUNING.js"); Files.createDirectories(source.getParent());
-        Files.write(source,"var MOTION_TUNING={curve:{leanRollDeg:2.4,stageHoldTicks:3},stop:{notchFactors:[0,0,0,0,0,1,2,3,4]}};".getBytes(StandardCharsets.UTF_8));
+        home.setAccessible(true);home.set(null,dir.toFile());
+        File file=dir.resolve("rtmclientsway.cfg").toFile();
+        Configuration c=new Configuration(file);c.load();
         c.get("sway","importPreview",false).set(true);
-        Tuning imported=TuningConfig.load(c,dir.toFile()); c.save();
-        check(imported.get("curve.leanRollDeg")==2.4 && imported.notch[8]==4,"import applied");
-        check(!c.get("sway","importPreview",false).getBoolean(false),"one-shot reset");
-        check(c.get("curve","stageHoldTicks",2).getInt()==3,"integer property preserved");
+        c.get("curve","leanRollDeg",1.2).set(1.8);
+        for(String group:new String[]{"curve","straight","turnout","stop"})c.get(group,"enabled",true).set(false);
+        c.save();SwayMod.config=c;SwayMod.configDir=dir.toFile();SwayMod.reload();
+        check(!c.getCategory("sway").containsKey("importPreview"),"import option removed");
         try(java.util.stream.Stream<Path> files=Files.list(dir)){
-            check(files.anyMatch(p->p.getFileName().toString().contains("before-import")),"backup created");
+            check(files.anyMatch(p->p.toString().contains("before-reference")),"migration backup");
         }
-        c.get("curve","leanRollDeg",1.2).set(1.8); c.save();
-        Configuration reopened=new Configuration(cfgFile); reopened.load();
-        Tuning after=TuningConfig.load(reopened,dir.toFile());
-        check(after.get("curve.leanRollDeg")==1.8 && after.get("curve.stageHoldTicks")==3,"saved GUI-style edits not overwritten");
-        check(reopened.get("vehicles.legacy", "curve.leanRollDeg", "").getString().equals("9"),"legacy profiles preserved but not applied");
-        Files.write(source,"var MOTION_TUNING={curve:{leanRollDeg:2,rollFrequencyHz:0}};".getBytes(StandardCharsets.UTF_8));
-        reopened.get("sway","importPreview",false).set(true);
-        Tuning failed=TuningConfig.load(reopened,dir.toFile());
-        check(failed.get("curve.leanRollDeg")==1.8 && reopened.get("curve","leanRollDeg",1.2).getDouble()==1.8,"invalid import is atomic");
-        System.out.println("PASS: Forge config persistence, integer fields, arrays, one-shot import, backup, atomic failure; fixtures="+dir);
+        Configuration reopened=new Configuration(file);reopened.load();
+        Tuning t=TuningConfig.load(reopened,dir.toFile());
+        check(t.get("curve.leanRollDeg")==1.8,"custom value preserved");
+        check(!t.isCurve&&!t.isStraight&&!t.isTurnout&&!t.isStop,"switch persistence");
+        BodyMotion m=new BodyMotion(1,20,t);m.impact(true,1,20);
+        for(int i=0;i<200;i++)m.update(.05,Math.max(0,20-i*.2),Math.max(0,20-(i-1)*.2),1,0,1,8,false);
+        check(m.roll.x==0&&m.sway.x==0&&m.bounce.x==0&&m.branchBounce.x==0&&m.pitch.x==0&&m.shift.x==0&&m.brakeShift.x==0,"disabled effects at rest");
+        System.out.println("PASS: config migration, backup, persistence and effect switches");
     }
 }

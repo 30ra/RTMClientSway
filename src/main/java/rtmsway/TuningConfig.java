@@ -33,30 +33,10 @@ final class TuningConfig {
             result.notch = Tuning.checkNotch(values);
         } catch (IllegalArgumentException e) { LOG.warning(e.getMessage()); notch.set(result.notch); }
         result.dataMapKey = config.get("straight", "dataMapKey", "BodyMotionStraightAdjust", "走行倍率の補正値を読むDataMapキー。読み取りのみ。空文字で無効").getString();
-        Property isImport = config.get("sway", "importPreview", false,
-            "ONにして保存するとconfig/rtmclientsway/MOTION_TUNING.jsを一度だけ取り込みます。成功後はOFFに戻ります。詳細設定を置き換え、省略項目は参考元の既定値になります。以後はConfig画面で調整できます。");
-        if (isImport.getBoolean(false)) {
-            Path source = new File(new File(configDir, "rtmclientsway"), "MOTION_TUNING.js").toPath();
-            try {
-                if (Files.size(source) > 262144) throw new IOException("ファイルの上限は256KiBです");
-                String text = new String(Files.readAllBytes(source), StandardCharsets.UTF_8);
-                Tuning imported = new Tuning(); List<String> ignored = new ArrayList<String>();
-                imported.overlay(TuningParser.parse(text), ignored);
-                // 完全な解析・範囲検証が済んでから、既存cfgをバックアップして一括反映する。
-                Path old = new File(configDir, "rtmclientsway.cfg").toPath();
-                if (Files.exists(old)) Files.copy(old, old.resolveSibling("rtmclientsway.cfg.before-import-" + System.currentTimeMillis() + ".bak"));
-                for (Tuning.Spec s : Tuning.SPECS.values()) {
-                    Property p = property(config, s);
-                    if (s.isInt) p.set((int)imported.get(s.path)); else p.set(imported.get(s.path));
-                }
-                notch.set(imported.notch);
-                config.get("straight", "dataMapKey", "BodyMotionStraightAdjust").set(imported.dataMapKey);
-                result = imported; isImport.set(false);
-                LOG.info("Previewer設定を読み込みました: " + source + "; 未適用項目=" + ignored);
-            } catch (IOException | IllegalArgumentException e) {
-                LOG.warning("Previewer設定を適用しませんでした。現在のConfigを維持します: " + source + "; " + e.getMessage());
-            }
-        }
+        result.isCurve = config.getBoolean("enabled", "curve", true, "カーブの持続外傾・進入と退出の動揺");
+        result.isStraight = config.getBoolean("enabled", "straight", true, "走行速度に応じた左右・上下の動揺");
+        result.isTurnout = config.getBoolean("enabled", "turnout", true, "トング・クロッシング通過時の衝撃");
+        result.isStop = config.getBoolean("enabled", "stop", true, "急制動・停止時の沈み込みと揺り戻し");
         return result;
     }
     private static Property property(Configuration config, Tuning.Spec s) {

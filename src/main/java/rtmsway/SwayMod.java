@@ -8,7 +8,7 @@ import cpw.mods.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.common.config.Configuration;
 import java.io.File;
 
-@Mod(modid="rtmclientsway", name="RTM Client Sway", version="1.1.0-dev.6", acceptedMinecraftVersions="[1.7.10]", acceptableRemoteVersions="*", guiFactory="rtmsway.SwayGuiFactory")
+@Mod(modid="rtmclientsway", name="RTM Client Sway", version="1.1.0-dev.7", acceptedMinecraftVersions="[1.7.10]", acceptableRemoteVersions="*", guiFactory="rtmsway.SwayGuiFactory")
 public final class SwayMod {
     public static Configuration config;
     static Tuning tuning = new Tuning();
@@ -24,8 +24,8 @@ public final class SwayMod {
     }
     public static void reload() {
         isOn = config.getBoolean("enabled", "sway", true, "車体の揺れを有効にする");
-        // 旧倍率は適用しない。設定ファイルはバックアップしてから旧項目を整理する。
-        String[] old = {"strength", "running", "curve", "switch", "stop", "vertical", "pivotHeight"};
+        // 設定移行前のcfgを保存する。
+        String[] old = {"strength", "running", "curve", "switch", "stop", "vertical", "pivotHeight", "importPreview"};
         boolean isOld = false;
         for (String key : old) isOld |= config.getCategory("sway").containsKey(key);
         if (isOld) {

@@ -2,8 +2,9 @@ package rtmsway;
 
 import java.util.*;
 
-/** PreviewerとConfigで共通の設定スキーマ。読み込みは計算開始前に完了する。 */
+/** 車体動揺の設定。車両状態の生成前に検証する。 */
 final class Tuning {
+    boolean isCurve = true, isStraight = true, isTurnout = true, isStop = true;
     static final Map<String, Spec> SPECS = new LinkedHashMap<String, Spec>();
     static {
         add("curve", "amplitudeScale", 1, 0, 10, "曲線全体の振幅倍率");

@@ -24,7 +24,7 @@ Copy-Item -Path (Join-Path $project 'src\main\resources\mcmod.info') -Destinatio
 Copy-Item -LiteralPath (Join-Path $project 'src\main\resources\assets') -Destination $classes -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $project 'LICENSE') -Destination $classes
 Copy-Item -LiteralPath (Join-Path $project 'THIRD_PARTY_NOTICES.md') -Destination $classes
-$output = Join-Path $dist 'RTMClientSway-1.1.0-dev.6.jar'
+$output = Join-Path $dist 'RTMClientSway-1.1.0-dev.7.jar'
 & jar cfm $output (Join-Path $project 'src\main\resources\META-INF\MANIFEST.MF') -C $classes .
 if ($LASTEXITCODE -ne 0) { throw 'jar failed' }
 Write-Output $output

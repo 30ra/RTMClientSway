@@ -10,6 +10,7 @@ final class BodyMotion {
     final Spring bounce = new Spring(2.10, .62, .012);
     final Spring branchBounce, pitch, shift, brakeShift;
     final double curveRollV, curveSwayV, rollNoise, swayNoise, bounceNoise;
+    final double[] impactRoll = new double[2], impactSway = new double[2], impactBounce = new double[2];
     private long seed;
     private double lateral, accel, decel, peak, reference, injectedRoll, injectedSway;
     private int cool, candidate, stable, curveDir, stageSign, stageTicks, exitTicks;
@@ -34,6 +35,12 @@ final class BodyMotion {
         rollNoise = noise(cfg.get("straight.rollStdDeg"), roll.hz, roll.damping);
         swayNoise = noise(cfg.get("straight.swayStdM"), sway.hz, sway.damping);
         bounceNoise = noise(cfg.get("straight.bounceStdM"), bounce.hz, bounce.damping);
+        for (int i = 0; i < 2; i++) {
+            String kind = i == 0 ? "toe" : "frog";
+            impactRoll[i] = peakVelocity(cfg.get("turnout." + kind + "PeakRollDeg"), roll.hz, roll.damping);
+            impactSway[i] = peakVelocity(cfg.get("turnout." + kind + "PeakSwayM"), sway.hz, sway.damping);
+            impactBounce[i] = cfg.get("turnout." + kind + "BounceImpulse");
+        }
         this.seed = (Math.abs(seed) * 7919L + 12345L) % 2147483646L + 1;
         isArmed = Math.abs(speed) > .25;
     }
@@ -52,6 +59,7 @@ final class BodyMotion {
         double deficit = Math.max(0, 1067 * kmh * kmh / (127 * radius)
             - 1067 * Math.tan(Math.abs(cant) * Math.PI / 180));
         double input = speed >= cfg.get("curve.minSpeedMps") && deficit >= cfg.get("curve.minCantDeficiencyMm") ? limit(Math.signum(lat) * 9.80665 * deficit / 1067, 3) : 0;
+        if (!cfg.isCurve) input = 0;
         int sign = Math.abs(input) > .0001 ? (int)Math.signum(input) : 0;
         if (sign == 0) { candidate = 0; stable = 0; }
         else if (candidate == sign) stable += ticks;
@@ -63,7 +71,7 @@ final class BodyMotion {
         accel += (rawAccel - accel) * Math.min(1, dt * 5);
         double nextDecel = Math.max(0, -accel * dir), jerk = (nextDecel - decel) / dt;
         cool = Math.max(0, cool - (int)Math.round(dt * 20));
-        if (nextDecel > cfg.get("stop.emergencyDecelMps2") && jerk > cfg.get("stop.emergencyJerkMps3") && cool == 0) {
+        if (cfg.isStop && nextDecel > cfg.get("stop.emergencyDecelMps2") && jerk > cfg.get("stop.emergencyJerkMps3") && cool == 0) {
             pitch.v += dir * cfg.get("stop.emergencyPitchImpulse");
             brakeShift.v += dir * cfg.get("stop.emergencyShiftImpulseM");
             cool = 20;
@@ -71,7 +79,7 @@ final class BodyMotion {
         if (!isArmed && speed > .25) { isArmed = true; peak = 0; }
         if (isArmed) peak = Math.max(peak, nextDecel);
         if (isArmed && speed < .06) {
-            if (brake >= cfg.get("stop.minimumBrakeLevel") && peak >= cfg.get("stop.minimumDecelMps2")) {
+            if (cfg.isStop && brake >= cfg.get("stop.minimumBrakeLevel") && peak >= cfg.get("stop.minimumDecelMps2")) {
                 double strength = Math.min(1, (peak - cfg.get("stop.minimumDecelMps2")) / 1.5);
                 pitch.v += dir * cfg.get("stop.pitchImpulse") * cfg.notch[Math.min(8, brake)] * (1 + strength * .15);
                 shift.v += dir * cfg.get("stop.shiftImpulseM") * cfg.notch[Math.min(8, brake)] * (1 + strength * .10);
@@ -84,7 +92,7 @@ final class BodyMotion {
             * (1 - Math.exp(-Math.max(0, speed * 3.6 - cfg.get("straight.minSpeedKmh")) / cfg.get("straight.referenceSpeedKmh")));
         double root = Math.sqrt(dt) * gain;
         curveEvent(ticks);
-        if (!isBad && gain > 0) {
+        if (cfg.isStraight && !isBad && gain > 0) {
             roll.v += rollNoise * root * gaussian();
             sway.v += swayNoise * root * gaussian();
             bounce.v += bounceNoise * root * gaussian();
@@ -154,12 +162,13 @@ final class BodyMotion {
     }
 
     void impact(boolean isFrog, int dir, double speed) {
+        if (!cfg.isTurnout) return;
         double min = cfg.get("turnout.minSpeedFactor");
         double factor = min + (1 - min) / (1 + Math.pow(speed * 3.6 / cfg.get("turnout.speedFalloffKmh"), 2));
-        String kind = isFrog ? "frog" : "toe";
-        roll.v += dir * peakVelocity(cfg.get("turnout." + kind + "PeakRollDeg"), roll.hz, roll.damping) * factor;
-        sway.v -= dir * peakVelocity(cfg.get("turnout." + kind + "PeakSwayM"), sway.hz, sway.damping) * factor;
-        branchBounce.v += cfg.get("turnout." + kind + "BounceImpulse") * factor;
+        int kind = isFrog ? 1 : 0;
+        roll.v += dir * impactRoll[kind] * factor;
+        sway.v -= dir * impactSway[kind] * factor;
+        branchBounce.v += impactBounce[kind] * factor;
     }
 
     static double limit(double v, double max) { return Math.max(-max, Math.min(max, v)); }
@@ -176,15 +185,18 @@ final class BodyMotion {
 
     static final class Spring {
         double x, v, prev, prevV;
-        final double hz, damping, max;
-        Spring(double hz, double damping, double max) { this.hz = hz; this.damping = damping; this.max = max; }
+        final double hz, damping, max, stiffness, drag;
+        Spring(double hz, double damping, double max) {
+            this.hz = hz; this.damping = damping; this.max = max;
+            double w = Math.PI * 2 * hz;
+            stiffness = w * w; drag = 2 * damping * w;
+        }
         void save() { prev = x; prevV = v; }
         void step(double target, double dt) {
-            double w = Math.PI * 2 * hz;
             int steps = Math.max(1, (int)Math.ceil(dt / .005));
             double h = dt / steps;
             for (int i = 0; i < steps; i++) {
-                v += ((target - x) * w * w - v * 2 * damping * w) * h;
+                v += ((target - x) * stiffness - v * drag) * h;
                 x += v * h;
             }
             if (Math.abs(x) > max) { x = limit(x, max); if (x * v > 0) v = 0; }

@@ -21,7 +21,7 @@ if ($LASTEXITCODE -ne 0) { throw 'bytecode verification failed' }
 if ($LASTEXITCODE -ne 0) { throw 'motion test compile failed' }
 & java -cp "$verify;$cp" rtmsway.VerifyMotion
 if ($LASTEXITCODE -ne 0) { throw 'motion tests failed' }
-& javac -encoding UTF-8 -source 8 -target 8 -cp $cp -d $verify (Join-Path $PSScriptRoot 'tools\VerifyTuning.java')
+& javac -encoding UTF-8 -source 8 -target 8 -cp $cp -d $verify (Join-Path $PSScriptRoot 'tools\TuningParser.java') (Join-Path $PSScriptRoot 'tools\VerifyTuning.java')
 if ($LASTEXITCODE -ne 0) { throw 'tuning test compile failed' }
 if ($TuningFile) { & java -cp "$verify;$cp" rtmsway.VerifyTuning $TuningFile }
 else { & java -cp "$verify;$cp" rtmsway.VerifyTuning }
