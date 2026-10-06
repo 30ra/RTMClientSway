@@ -12,9 +12,9 @@ import java.io.File;
 public final class SwayMod {
     public static Configuration config;
     static Tuning tuning = new Tuning();
-    private static File configDir;
+    static File configDir;
     public static boolean isOn = true, isVertical = true;
-    public static double gain = 1, run = 1, curve = 1, branch = 1, stop = 1, pivot = 1.5;
+    public static double gain = 1, run = 1, curve = 1, branch = 1, stop = 1, pivot = 1.15;
     @Mod.EventHandler public void preInit(FMLPreInitializationEvent event) {
         if (!event.getSide().isClient()) return;
         config = new Configuration(event.getSuggestedConfigurationFile());
@@ -31,8 +31,9 @@ public final class SwayMod {
         curve = value("curve", 1, 0, 5, "カーブの追加傾斜の強さ");
         branch = value("switch", 1, 0, 5, "分岐の傾斜・横衝撃の強さ");
         stop = value("stop", 1, 0, 5, "停車時の揺り返しの強さ");
-        pivot = value("pivotHeight", 1.5, 0, 4, "回転中心の高さ(m)");
+        pivot = value("pivotHeight", 1.15, 0, 4, "回転中心の高さ(m)。参考元の既定値は1.15。保存済み設定は維持します");
         tuning = TuningConfig.load(config, configDir);
+        VehicleConfig.load(config, configDir);
         config.getCategory("sway").setLanguageKey("rtmclientsway.config.general");
         for (String name : new String[]{"curve", "straight", "turnout", "stop"})
             config.getCategory(name).setLanguageKey("rtmclientsway.config." + name);

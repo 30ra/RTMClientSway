@@ -20,8 +20,9 @@ public final class SwayGuiFactory implements IModGuiFactory {
             super(parent, elements(), "rtmclientsway", false, false, "RTM Client Sway / 車体揺れ設定");
         }
         private static List<IConfigElement> elements() {
+            VehicleConfig.prepareGui(SwayMod.config, SwayMod.configDir);
             List<IConfigElement> elements = new ArrayList<IConfigElement>();
-            for (String name : new String[]{"sway", "curve", "straight", "turnout", "stop"})
+            for (String name : new String[]{"sway", "curve", "straight", "turnout", "stop", "vehicles"})
                 elements.add(new ConfigElement(SwayMod.config.getCategory(name)));
             return elements;
         }
