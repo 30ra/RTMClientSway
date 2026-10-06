@@ -1,5 +1,7 @@
 # 開発者向け資料
 
+バージョンの付け方と過去の開発版の対応は[バージョン規則](VERSIONING.md)、未リリース機能の設定方法は[開発版の設定](DEVELOPMENT_SETTINGS.md)を参照してください。現在の開発版は`1.1.0-dev.3`です。
+
 ## ビルドと検証
 
 ビルドにはJava 8のJDK、PowerShell、およびForge 1.7.10開発環境のGradleキャッシュが必要です。ビルドスクリプトは依存ライブラリを自動ダウンロードしません。
@@ -17,7 +19,7 @@ powershell -File build.ps1
 powershell -File build.ps1 -Cache "D:\gradle-cache"
 ```
 
-生成先は`dist/RTMClientSway-1.1.1-dev.jar`です。旧バージョンのJARは上書きしません。
+生成先は`dist/RTMClientSway-1.1.0-dev.3.jar`です。旧バージョンのJARは上書きしません。
 対象のKaizPatchX JARへ描画処理を組み込んだバイトコードを検証する場合：
 
 ```powershell
