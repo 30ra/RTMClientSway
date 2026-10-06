@@ -1,0 +1,16 @@
+name: Distribution guard
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  no-development-binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject tracked development JARs
+        shell: bash
+        run: |
+          if git ls-files | grep -Ei -- '-dev[^/]*\.jar$'; then
+            echo 'Development JARs must stay local, outside the public repository.'
+            exit 1
+          fi

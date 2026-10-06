@@ -9,7 +9,7 @@ $deps = @(
 )
 if ($deps.Count -lt 5) { throw '必要なForge 1.7.10/ASM/LaunchWrapper/LWJGL/Guavaのキャッシュがありません。' }
 $classes = Join-Path $project 'build\classes'
-$dist = Join-Path $project 'dist'
+$dist = Join-Path $project 'build\private-dist'
 New-Item -ItemType Directory -Force -Path $classes,$dist | Out-Null
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $project 'src\main\java') -Recurse -Filter '*.java' | ForEach-Object FullName)
 & javac -encoding UTF-8 -source 8 -target 8 -classpath (($deps | ForEach-Object FullName) -join ';') -d $classes $sources
@@ -18,7 +18,7 @@ Copy-Item -Path (Join-Path $project 'src\main\resources\mcmod.info') -Destinatio
 Copy-Item -LiteralPath (Join-Path $project 'src\main\resources\assets') -Destination $classes -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $project 'LICENSE') -Destination $classes
 Copy-Item -LiteralPath (Join-Path $project 'THIRD_PARTY_NOTICES.md') -Destination $classes
-$output = Join-Path $dist 'RTMClientSway-1.1.0-dev.3.jar'
+$output = Join-Path $dist 'RTMClientSway-1.1.0-dev.4.jar'
 & jar cfm $output (Join-Path $project 'src\main\resources\META-INF\MANIFEST.MF') -C $classes .
 if ($LASTEXITCODE -ne 0) { throw 'jar failed' }
 Write-Output $output
