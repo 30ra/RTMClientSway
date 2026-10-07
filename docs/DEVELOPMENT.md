@@ -1,6 +1,6 @@
 # 開発者向け資料
 
-対象は `1.1.0-dev.8` です。設定方法は[開発版の設定](DEVELOPMENT_SETTINGS.md)、番号の扱いは[バージョン規則](VERSIONING.md)を参照してください。
+対象は `1.1.0` です。設定方法は[設定の詳細](DEVELOPMENT_SETTINGS.md)、番号の扱いは[バージョン規則](VERSIONING.md)を参照してください。
 
 ## ビルドと検証
 
@@ -11,7 +11,7 @@ powershell -File build.ps1
 powershell -File verify.ps1 -KaizJar "D:\Minecraft\mods\KaizPatchX.jar"
 ```
 
-生成先は `build/private-dist/RTMClientSway-1.1.0-dev.8.jar` です。キャッシュを指定する場合は `-Cache "D:\gradle-cache"` を追加します。
+生成先は `dist/RTMClientSway-1.1.0.jar` です。キャッシュを指定する場合は `-Cache "D:\gradle-cache"` を追加します。
 
 ## 描画と入力
 
