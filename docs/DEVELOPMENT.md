@@ -30,7 +30,7 @@ KaizPatchXの `RenderVehicleBase.renderVehicleMain` で、車体・ライト・�
 
 ## 分岐
 
-C-TREC & 月島重工 制作の動揺JS（RTMBodyMotion）を使用しています。[利用条件](../THIRD_PARTY_NOTICES.md)と参照コミットを同資料に記載しています。
+帝立車両様・かんつき様制作の動揺JS（RTMBodyMotion）を使用しています。[利用条件](../THIRD_PARTY_NOTICES.md)と参照コミットを同資料に記載しています。
 
 台車の `currentRailObj` を優先し、未取得の場合は台車直下のレールを照会します。分岐コアの `getSwitch().getPoints()` から形状を取得します。
 

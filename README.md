@@ -100,7 +100,7 @@ Copyright (c) 2026 hachiko-tokkai
 
 Minecraft、Forge、KaizPatchXなどの第三者ソフトウェアの権利は、各権利者に帰属します。それらのJARやソースコードは同梱していません。
 
-分岐処理には「C-TREC & 月島重工 制作の動揺JS（RTMBodyMotion）」を使用しています。
+分岐処理には「帝立車両様・かんつき様制作の動揺JS（RTMBodyMotion）」を使用しています。
 
 ## 参考資料
 
