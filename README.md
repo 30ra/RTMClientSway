@@ -102,6 +102,10 @@ Minecraft、Forge、KaizPatchXなどの第三者ソフトウェアの権利は�
 
 分岐処理には「帝立車両様・かんつき様制作の動揺JS（RTMBodyMotion）」を使用しています。
 
+利用条件に基づく指定クレジット（原文）：
+
+> C-TREC & 月島重工 制作の動揺JSを使用
+
 ## 参考資料
 
 - [KaizPatchX](https://github.com/Kai-Z-JP/KaizPatchX)
