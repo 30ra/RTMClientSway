@@ -1,40 +1,49 @@
 # 開発者向け資料
 
+対象は `1.1.0-dev.8` です。設定方法は[開発版の設定](DEVELOPMENT_SETTINGS.md)、番号の扱いは[バージョン規則](VERSIONING.md)を参照してください。
+
 ## ビルドと検証
 
-ビルドにはJava 8のJDK、PowerShell、およびForge 1.7.10開発環境のGradleキャッシュが必要です。ビルドスクリプトは依存ライブラリを自動ダウンロードしません。
-キャッシュにはForgeの開発用JAR、ASM 5.0.3、LaunchWrapper 1.12、LWJGL 2.9.1、Guava 17.0が必要です。
-
-リポジトリのルートで実行します。
+Java 8のJDK、PowerShell、Forge 1.7.10のGradleキャッシュを使用します。依存JARはForge開発用JAR、ASM 5.0.3、LaunchWrapper 1.12、LWJGL 2.9.1、Guava 17.0です。
 
 ```powershell
 powershell -File build.ps1
-```
-
-キャッシュの場所を指定する場合：
-
-```powershell
-powershell -File build.ps1 -Cache "D:\gradle-cache"
-```
-
-生成先は`dist/RTMClientSway-1.0.0.jar`です。
-対象のKaizPatchX JARへ描画処理を組み込んだバイトコードを検証する場合：
-
-```powershell
 powershell -File verify.ps1 -KaizJar "D:\Minecraft\mods\KaizPatchX.jar"
 ```
 
-この検証はMinecraft上での動作試験を代替するものではありません。
+生成先は `build/private-dist/RTMClientSway-1.1.0-dev.8.jar` です。キャッシュを指定する場合は `-Cache "D:\gradle-cache"` を追加します。
 
-## 描画処理
+## 描画と入力
 
-[KaizPatchXのRenderVehicleBase](https://github.com/Kai-Z-JP/KaizPatchX/blob/master/src/main/java/jp/ngt/rtm/entity/vehicle/RenderVehicleBase.java)の`renderVehicleMain`へ、車体を移動・回転する描画処理を追加します。
-車体・ライト・方向幕に同じ変換を適用し、処理後は描画用の行列を元へ戻します。
+KaizPatchXの `RenderVehicleBase.renderVehicleMain` で、車体・ライト・方向幕に共通の移動・回転を適用します。描画後は行列を復元します。台車は別Entityとして描画されます。
 
-揺れの計算は車両ごとにTickが変わったときだけ実行し、描画フレームの間を補間します。分岐判定のレール照会は更新ごとに前後の台車で各1回です。
-車両ごとの状態はクライアント内に保存します。APIの不一致を検出した場合はエラーをログに記録し、追加の揺れを停止します。
+状態更新はEntityのTickが変わった時に行い、フレーム間は位置と速度によるHermite補間を使います。速度は `getSpeed() × 20` のm/s、向きは車体Yawと実移動の投影、制動段は `getNotch()` から取得します。GUIのnull Entityは動揺処理の対象外です。
 
-## 参考資料
+瞬間移動、大きなYaw変化、長い更新飛びでは入力履歴を再初期化します。新規検出した台車は最初の観測で通過状態だけを記録します。
 
-- [KaizPatchX](https://github.com/Kai-Z-JP/KaizPatchX)
-- [READMEへ戻る](../README.md)
+## 動揺モデル
+
+- 走行：実走行距離に対する複数波長の入力と緩やかな振幅変動を、共通サスペンションへ渡します。速度が低下すると入力が弱まり、停止後は残った揺れが減衰します。
+- 曲線：Yawの変化と速度から横加速度を求め、既存カントの分を差し引きます。入力を滑らかにして持続外傾と外側への横変位を作り、進入・退出ではその変化を衝撃として加えます。
+- 制動・停止：減速度とその変化から急制動の衝動を作ります。停止衝動はB5以上かつ最近の減速度が0.75m/s²以上の場合に発生し、ブレーキ段と制動の強さに応じて変化します。
+- サスペンション：減衰振動の解析解で位置・速度を進めます。固有周波数と減衰係数は生成時に計算します。
+
+## 分岐
+
+C-TREC & 月島重工 制作の動揺JS（RTMBodyMotion）を使用しています。[利用条件](../THIRD_PARTY_NOTICES.md)と参照コミットを同資料に記載しています。
+
+台車の `currentRailObj` を優先し、未取得の場合は台車直下のレールを照会します。分岐コアの `getSwitch().getPoints()` から形状を取得します。
+
+トングは `rpRoot`、クロッシングは軌間1067mmでオフセットした本線・支線を各97点取得し、近接する点から位置を求めます。位置はPoint単位でキャッシュし、上限512件で整理します。特殊形状で交点を求められない場合はトング位置を使用します。
+
+前回・今回の台車位置を結ぶ線分と衝撃点の距離を比較します。半径1.25mへの進入を検出し、前後台車とトング・クロッシングで独立した通過状態・冷却時間を保持します。レール境界を跨ぐ際は、直前と現在の分岐コアを評価します。
+
+横加速度が得られる場合はその方向へロール衝撃、逆符号へ横変位衝撃を加えます。直線通過ではEntity IDと台車番号で交互方向を選びます。トングよりクロッシングの衝撃を強くし、上下衝撃も加えます。
+
+## 検証範囲
+
+`VerifyTransformer` は実際のKaizPatchX JARに対する描画フック、スタック、例外時の行列復元を検証します。`VerifyVisualMotion` は方向の対称性、曲線退出、分岐衝撃と減衰、制動段、後退時の停止、更新間隔、補間、上限を検証します。
+
+分岐の通過試験には検証専用API代替を使い、最初の観測、前後台車、トングとクロッシングの独立判定、連続観測時の再発抑止、停止時と不正入力時の抑止を確認します。
+
+外観、実際の分岐形状、台車の向き、Angelica併用、描画負荷はMinecraft上で確認します。
